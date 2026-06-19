@@ -1,0 +1,85 @@
+// NoLoop backend schema.
+//
+// Tenant   = an organization (hospital or insurer) — the multi-tenancy root.
+// User     = a person who logs in (org admin, staff, patient, or platform admin).
+// ActivityLog = append-only audit trail — powers the admin panel's "logs" view.
+//
+// url       = pooled connection (app runtime).
+// directUrl = direct connection (migrations). See backend/.env.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum TenantType {
+  INSURER
+  HOSPITAL
+}
+
+enum Role {
+  // Platform operator (you) — runs the admin dashboard, sees everything.
+  PLATFORM_ADMIN
+  // Org admins — manage their own org's employees.
+  HOSPITAL_ADMIN
+  INSURER_ADMIN
+  // Org staff — do the day-to-day work.
+  HOSPITAL_STAFF
+  INSURER_ADJUDICATOR
+  // End user (cross-tenant).
+  PATIENT
+}
+
+model Tenant {
+  id        String     @id @default(cuid())
+  type      TenantType
+  name      String
+  createdAt DateTime   @default(now())
+
+  users        User[]
+  activityLogs ActivityLog[]
+
+  @@index([type])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  // bcrypt hash — never the raw password.
+  passwordHash String
+  role         Role
+  // Null for PATIENT (cross-tenant) and PLATFORM_ADMIN.
+  tenantId     String?
+  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
+  createdAt    DateTime @default(now())
+
+  activityLogs ActivityLog[] @relation("ActorLogs")
+
+  @@index([tenantId])
+  @@index([role])
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  // Which org this event belongs to (null = platform-level event).
+  tenantId  String?
+  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  // Who did it (null = system).
+  actorId   String?
+  actor     User?    @relation("ActorLogs", fields: [actorId], references: [id])
+  // e.g. "ORG_CREATED", "EMPLOYEE_CREATED", "LOGIN".
+  action    String
+  detail    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([actorId])
+  @@index([createdAt])
+}
