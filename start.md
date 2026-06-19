@@ -1,3 +1,3 @@
-cd Noloop/backend && bun run dev     # API  :4000
-cd Noloop && bun run dev             # web  :3000
-cd Noloop-admin && bun run dev       # admin :3001
+- cd Noloop/backend && bun run dev     # API  :4000
+- cd Noloop && bun run dev             # web  :3000
+- cd Noloop-admin && bun run dev       # admin :3001
