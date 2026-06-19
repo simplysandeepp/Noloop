@@ -25,6 +25,19 @@ export default function Home() {
             <p>Full transparency on every claim, in plain language.</p>
           </div>
         </div>
+
+        {/* Meaning-colors: green = approved, red = denied, amber = in review */}
+        <div className="legend">
+          <span className="chip">
+            <span className="dot approve" /> Approved
+          </span>
+          <span className="chip">
+            <span className="dot deny" /> Denied
+          </span>
+          <span className="chip">
+            <span className="dot review" /> In review
+          </span>
+        </div>
       </section>
     </main>
   );

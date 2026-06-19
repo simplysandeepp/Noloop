@@ -5,19 +5,26 @@
 }
 
 :root {
-  --bg: #0b1120;
-  --fg: #e2e8f0;
-  --muted: #94a3b8;
-  --accent: #38bdf8;
-  --card: #111a2e;
-  --border: #1e293b;
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --muted: #64748b;
+  --blue: #2563eb;
+  --blue-dark: #1e40af;
+  --blue-soft: #eff6ff;
+  --green: #16a34a;
+  --red: #dc2626;
+  --amber: #d97706;
+  --border: #e2e8f0;
+  --card: #f8fafc;
 }
 
 body {
   font-family:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  background: var(--bg);
   color: var(--fg);
+  background:
+    radial-gradient(1200px 500px at 50% -10%, var(--blue-soft), transparent),
+    var(--bg);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -30,18 +37,19 @@ body {
 }
 
 .hero {
-  max-width: 760px;
+  max-width: 780px;
   text-align: center;
 }
 
 .badge {
   display: inline-block;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--accent);
-  border: 1px solid var(--border);
+  color: var(--blue);
+  background: var(--blue-soft);
+  border: 1px solid #dbeafe;
   border-radius: 999px;
   padding: 0.35rem 0.9rem;
   margin-bottom: 1.75rem;
@@ -50,12 +58,12 @@ body {
 .hero h1 {
   font-size: clamp(2rem, 5vw, 3.25rem);
   line-height: 1.1;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .accent {
-  color: var(--accent);
+  color: var(--blue);
 }
 
 .sub {
@@ -67,7 +75,7 @@ body {
 }
 
 .pillars {
-  margin-top: 3rem;
+  margin-top: 2.75rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
@@ -84,6 +92,7 @@ body {
 .pillar h3 {
   font-size: 1.05rem;
   margin-bottom: 0.5rem;
+  color: var(--blue-dark);
 }
 
 .pillar p {
@@ -91,6 +100,36 @@ body {
   font-size: 0.92rem;
   line-height: 1.5;
 }
+
+/* Meaning-colors: status legend */
+.legend {
+  margin-top: 2.5rem;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  background: #fff;
+}
+
+.dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+}
+.dot.approve { background: var(--green); }
+.dot.deny { background: var(--red); }
+.dot.review { background: var(--amber); }
 
 @media (max-width: 640px) {
   .pillars {
