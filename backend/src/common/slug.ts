@@ -1,7 +1,7 @@
 /** System email domain for all generated accounts. */
 export const EMAIL_DOMAIN = "noloop.in";
 
-/** "Bir Hospital" -> "bir.hospital" (words joined by dots). */
+/** "Acme Hospital" -> "acme.hospital" (words joined by dots). */
 export function toDotted(name: string): string {
   return name
     .toLowerCase()
@@ -12,7 +12,7 @@ export function toDotted(name: string): string {
     .join(".");
 }
 
-/** "Bir Hospital" -> "birhospital" (alphanumeric only, no separators). */
+/** "Acme Hospital" -> "acmehospital" (alphanumeric only, no separators). */
 export function toCompact(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "");
 }

@@ -71,7 +71,7 @@ export class OrgService {
 
   /**
    * Create a staff account under the admin's org. Email is generated:
-   * "Sachin" under "Bir Hospital" -> sachin.birhospital@noloop.in.
+   * "Sachin" under "Acme Hospital" -> sachin.acmehospital@noloop.in.
    */
   async createEmployee(tenantId: string | null, dto: CreateEmployeeDto) {
     const tenant = await this.tenantOf(tenantId);

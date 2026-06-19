@@ -21,8 +21,8 @@ export class AuthService {
   }
 
   /** Create an org (tenant) + its first admin, atomically.
-   *  The admin's email is generated from the org name: "Bir Hospital"
-   *  -> bir.hospital@noloop.in (with a numeric suffix on collision). */
+   *  The admin's email is generated from the org name: "Acme Hospital"
+   *  -> acme.hospital@noloop.in (with a numeric suffix on collision). */
   async signup(dto: SignupDto) {
     const email = await uniqueEmail(toDotted(dto.orgName), (e) =>
       this.prisma.user.findUnique({ where: { email: e } }).then(Boolean),

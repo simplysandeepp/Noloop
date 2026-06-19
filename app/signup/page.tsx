@@ -74,7 +74,7 @@ export default function SignupPage() {
             id="orgName"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
-            placeholder="e.g. Bir Hospital"
+            placeholder="e.g. Acme Hospital"
             required
           />
         </div>

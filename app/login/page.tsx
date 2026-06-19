@@ -42,7 +42,7 @@ export default function LoginPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="bir.hospital@noloop.in"
+            placeholder="acme.hospital@noloop.in"
             required
           />
         </div>
