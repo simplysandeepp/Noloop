@@ -1,14 +1,11 @@
-import {
-  Injectable,
-  ConflictException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
 import { Role, TenantType, User } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { SignupDto } from "./dto/signup.dto";
 import { LoginDto } from "./dto/login.dto";
+import { toDotted, uniqueEmail } from "../common/slug";
 
 @Injectable()
 export class AuthService {
@@ -23,12 +20,13 @@ export class AuthService {
       : Role.INSURER_ADMIN;
   }
 
-  /** Create an org (tenant) + its first admin, atomically. */
+  /** Create an org (tenant) + its first admin, atomically.
+   *  The admin's email is generated from the org name: "Bir Hospital"
+   *  -> bir.hospital@noloop.in (with a numeric suffix on collision). */
   async signup(dto: SignupDto) {
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
-    if (existing) throw new ConflictException("Email already registered");
+    const email = await uniqueEmail(toDotted(dto.orgName), (e) =>
+      this.prisma.user.findUnique({ where: { email: e } }).then(Boolean),
+    );
 
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const role = this.adminRoleFor(dto.orgType);
@@ -39,7 +37,7 @@ export class AuthService {
       });
       const created = await tx.user.create({
         data: {
-          email: dto.email,
+          email,
           name: dto.adminName,
           passwordHash,
           role,
