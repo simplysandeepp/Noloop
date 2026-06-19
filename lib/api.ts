@@ -79,16 +79,64 @@ export async function authedGet<T>(path: string): Promise<T> {
   return data as T;
 }
 
-export async function authedPost<T>(path: string, body: unknown): Promise<T> {
+export async function authedPost<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${getToken() ?? ""}`,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(body ?? {}),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, readError(data, res.status));
   return data as T;
+}
+
+/** Public GET (no auth) — used by the claim-tracking page. */
+export async function publicGet<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, readError(data, res.status));
+  return data as T;
+}
+
+// ── formatting helpers (money is always paise) ──
+export function inr(paise: number | null | undefined): string {
+  if (paise == null) return "—";
+  return "₹" + Math.round(paise / 100).toLocaleString("en-IN");
+}
+
+/** Compact rupees: ₹12.5L, ₹1.2Cr. */
+export function inrCompact(paise: number | null | undefined): string {
+  if (paise == null) return "—";
+  const r = paise / 100;
+  if (r >= 1e7) return `₹${(r / 1e7).toFixed(2)}Cr`;
+  if (r >= 1e5) return `₹${(r / 1e5).toFixed(2)}L`;
+  if (r >= 1e3) return `₹${(r / 1e3).toFixed(1)}k`;
+  return "₹" + Math.round(r).toLocaleString("en-IN");
+}
+
+export function fmtTat(seconds: number | null | undefined): string {
+  if (seconds == null) return "—";
+  if (seconds < 1) return "<1s";
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  return `${m}m ${seconds % 60}s`;
+}
+
+export function fmtDate(s: string | Date): string {
+  return new Date(s).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+export function fmtDay(s: string | Date): string {
+  return new Date(s).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+  });
 }

@@ -1,5 +1,5 @@
-import OrgPortal from "../../components/OrgPortal";
+import InsurerPortal from "../../components/InsurerPortal";
 
 export default function InsurerPortalPage() {
-  return <OrgPortal />;
+  return <InsurerPortal />;
 }

@@ -43,6 +43,10 @@ class LineItem(BaseModel):
 class Policy(BaseModel):
     policyNo: str | None = None
     sumInsuredPaise: int
+    # Per-day room-rent ceiling — anything above is the patient's liability.
+    roomRentCapPerDayPaise: int | None = None
+    # Mandatory co-payment percentage borne by the patient.
+    copayPct: int = 0
     coveredProcedures: list[str] = Field(default_factory=list)
     exclusions: list[str] = Field(default_factory=list)
 
@@ -84,6 +88,12 @@ class CoverageResult(BaseModel):
     citedClauseRefs: list[str] = Field(default_factory=list)
 
 
+class Deduction(BaseModel):
+    """A line of money subtracted from the billed amount, with a reason."""
+    label: str
+    amountPaise: int
+
+
 class Decision(BaseModel):
     ref: str
     verdict: Verdict
@@ -91,4 +101,7 @@ class Decision(BaseModel):
     citedClauseRefs: list[str] = Field(default_factory=list)
     fraudFlags: list[FraudFlag] = Field(default_factory=list)
     approvedAmountPaise: int | None = None
+    deductions: list[Deduction] = Field(default_factory=list)
     confidence: float = 0.5
+    # Which engine produced this — "rule-engine-v1" or a Claude model id.
+    model: str = "rule-engine-v1"

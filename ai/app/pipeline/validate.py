@@ -23,8 +23,17 @@ def validate(packet: ClaimPacket, coverage: CoverageResult) -> list[FraudFlag]:
     flags: list[FraudFlag] = []
 
     # 1. Bill math — line items must sum to the stated total.
+    #    Exception: when the genuine line items reconcile to within the sum
+    #    insured but the *stated total* is inflated past it, the gap is a
+    #    coverage-cap overage (AMOUNT_OUTLIER → query), not arithmetic fraud
+    #    (BILL_MATH_MISMATCH → deny). If the line items themselves already blow
+    #    the cap, an extra mismatch on top is still treated as fraud.
     line_sum = sum(li.amountPaise for li in packet.bill.lineItems)
-    if line_sum != packet.bill.totalPaise:
+    over_cap_overage = (
+        packet.bill.totalPaise > packet.policy.sumInsuredPaise
+        and line_sum <= packet.policy.sumInsuredPaise
+    )
+    if line_sum != packet.bill.totalPaise and not over_cap_overage:
         flags.append(
             FraudFlag(
                 signal=FraudSignal.BILL_MATH_MISMATCH,
@@ -65,7 +74,21 @@ def validate(packet: ClaimPacket, coverage: CoverageResult) -> list[FraudFlag]:
             )
         )
 
-    # 4. Policy exclusion (surfaced from the coverage stage).
+    # 4. Date inconsistency — discharge before admission.
+    if packet.admission.admittedAt and packet.admission.dischargedAt:
+        if packet.admission.dischargedAt < packet.admission.admittedAt:
+            flags.append(
+                FraudFlag(
+                    signal=FraudSignal.DATE_INCONSISTENCY,
+                    severity=Severity.HIGH,
+                    detail=(
+                        f"Discharge date {packet.admission.dischargedAt} is before "
+                        f"admission date {packet.admission.admittedAt}."
+                    ),
+                )
+            )
+
+    # 5. Policy exclusion (surfaced from the coverage stage).
     if not coverage.covered and "EXCLUSIONS" in coverage.citedClauseRefs:
         flags.append(
             FraudFlag(
