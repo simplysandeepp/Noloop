@@ -176,7 +176,7 @@ async function main() {
   });
 
   // Patients
-  const patients = [];
+  const patients: any[] = [];
   for (let i = 0; i < 12; i++) {
     const name = `${pick(FIRST)} ${pick(LAST)}`;
     patients.push(

@@ -94,6 +94,32 @@ class Deduction(BaseModel):
     amountPaise: int
 
 
+# ── document extraction (OCR via Groq vision) ──
+class ExtractRequest(BaseModel):
+    imageBase64: str
+    mimeType: str = "image/jpeg"
+
+
+class ExtractedLineItem(BaseModel):
+    desc: str
+    amountPaise: int
+
+
+class ExtractResult(BaseModel):
+    enabled: bool
+    patientName: str | None = None
+    patientAge: int | None = None
+    patientGender: str | None = None
+    procedure: str | None = None
+    diagnosis: str | None = None
+    admittedAt: str | None = None
+    dischargedAt: str | None = None
+    lineItems: list[ExtractedLineItem] = Field(default_factory=list)
+    totalPaise: int | None = None
+    note: str | None = None
+    model: str | None = None
+
+
 class Decision(BaseModel):
     ref: str
     verdict: Verdict

@@ -6,8 +6,11 @@ import {
   Post,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import { Role } from "@prisma/client";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/roles.guard";
@@ -25,6 +28,14 @@ export class ClaimsController {
   @Roles(Role.HOSPITAL_ADMIN, Role.HOSPITAL_STAFF)
   submit(@Req() req: any, @Body() dto: SubmitClaimDto) {
     return this.claims.submit(req.user, dto);
+  }
+
+  // OCR a bill / discharge summary into form fields (Groq vision).
+  @Post("extract")
+  @Roles(Role.HOSPITAL_ADMIN, Role.HOSPITAL_STAFF)
+  @UseInterceptors(FileInterceptor("file"))
+  extract(@UploadedFile() file: any) {
+    return this.claims.extractDocument(file);
   }
 
   @Get()
