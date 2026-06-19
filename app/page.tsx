@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="page">
@@ -10,6 +12,15 @@ export default function Home() {
           One platform bridging hospitals, insurers, and patients — cutting
           turnaround time, catching fraud, and making every claim transparent.
         </p>
+
+        <div className="cta">
+          <Link href="/signup" className="btn btn-primary">
+            Start your journey
+          </Link>
+          <Link href="/login" className="btn btn-ghost">
+            Log in
+          </Link>
+        </div>
 
         <div className="pillars">
           <div className="pillar">
