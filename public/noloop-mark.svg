@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 40" fill="none">
+  <defs>
+    <linearGradient id="nlGrad" x1="4" y1="20" x2="60" y2="20" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18365B"></stop>
+      <stop offset="0.55" stop-color="#0E5E63"></stop>
+      <stop offset="1" stop-color="#2A8A8F"></stop>
+    </linearGradient>
+  </defs>
+  <path d="M32 20 C 27 9, 11 9, 11 20 C 11 31, 27 31, 32 20 C 37 9, 53 9, 53 20 C 53 31, 37 31, 32 20 Z" stroke="url(#nlGrad)" stroke-width="5" stroke-linecap="round" fill="none"></path>
+</svg>
