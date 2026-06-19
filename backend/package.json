@@ -2,14 +2,15 @@
   "name": "noloop-backend",
   "version": "0.0.1",
   "private": true,
-  "description": "NoLoop backend — NestJS API (auth, tenancy, claims) on Prisma + Supabase Postgres.",
+  "description": "NoLoop backend \u2014 NestJS API (auth, tenancy, claims) on Prisma + Supabase Postgres.",
   "scripts": {
     "dev": "bun --watch src/main.ts",
     "start": "bun src/main.ts",
     "build": "nest build",
     "prisma:generate": "bunx prisma generate",
     "prisma:migrate": "bunx prisma migrate dev",
-    "prisma:studio": "bunx prisma studio"
+    "prisma:studio": "bunx prisma studio",
+    "create:admin": "bun scripts/create-platform-admin.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
