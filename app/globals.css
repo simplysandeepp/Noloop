@@ -1,8 +1,82 @@
 /* Tailwind v4 */
 @import "tailwindcss";
 
+/* ──────────────────────────────────────────────────────────────
+   Theme remap (from noloop-demo.netlify.app): warm paper/ink with
+   teal primary + navy secondary. We remap Tailwind's default color
+   ramps so existing utility classes adopt the new palette without
+   editing every component:
+     sky-*   → teal   (primary / hospital)
+     teal-*  → navy   (secondary / insurer)
+     slate-* → ink + paper (text, borders, warm neutrals)
+     emerald → success · red → rose · amber → amber
+   ────────────────────────────────────────────────────────────── */
+@theme {
+  /* primary: sky → teal */
+  --color-sky-50: #eef7f7;
+  --color-sky-100: #dcedee;
+  --color-sky-200: #c7e2e3;
+  --color-sky-300: #8fc6c8;
+  --color-sky-400: #4da6aa;
+  --color-sky-500: #2a8a8f;
+  --color-sky-600: #137176;
+  --color-sky-700: #0e5e63;
+  --color-sky-800: #0a3e42;
+  --color-sky-900: #06292c;
+
+  /* secondary: teal → navy */
+  --color-teal-50: #eef2f8;
+  --color-teal-100: #dee6f0;
+  --color-teal-200: #c3d2e4;
+  --color-teal-300: #9db0c7;
+  --color-teal-400: #6e89ab;
+  --color-teal-500: #355377;
+  --color-teal-600: #274363;
+  --color-teal-700: #18365b;
+  --color-teal-800: #102744;
+  --color-teal-900: #0a1a2f;
+
+  /* neutrals: slate → warm ink + paper */
+  --color-slate-50: #f5efe5;
+  --color-slate-100: #ece4d4;
+  --color-slate-200: #e7e0d3;
+  --color-slate-300: #dcd1bc;
+  --color-slate-400: #94a0a8;
+  --color-slate-500: #5a656d;
+  --color-slate-600: #5a656d;
+  --color-slate-700: #2c343a;
+  --color-slate-800: #2c343a;
+  --color-slate-900: #14181b;
+
+  /* success: emerald → #2F7D5B */
+  --color-emerald-50: #e2f1e9;
+  --color-emerald-100: #c8e4d5;
+  --color-emerald-500: #2f7d5b;
+  --color-emerald-600: #266a4d;
+
+  /* danger: red → rose */
+  --color-red-50: #f8e2df;
+  --color-red-100: #f6ddd3;
+  --color-red-200: #e0a395;
+  --color-red-500: #bc5750;
+  --color-red-600: #bc5750;
+  --color-red-700: #8c3a39;
+
+  /* warning: amber */
+  --color-amber-50: #f7ead2;
+  --color-amber-100: #f7ead2;
+  --color-amber-200: #e8c792;
+  --color-amber-500: #c9924a;
+  --color-amber-600: #c9924a;
+  --color-amber-700: #8c6428;
+  --color-amber-800: #8c6428;
+  --color-amber-900: #8c6428;
+}
+
 :root {
-  --font: "General Sans", "Inter", system-ui, -apple-system, sans-serif;
+  --font: "Geist", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial,
+    sans-serif;
+  --paper-50: #fbf8f3;
 }
 
 *,
@@ -14,8 +88,8 @@
 body {
   font-family: var(--font);
   -webkit-font-smoothing: antialiased;
-  background: #f0f7ff;
-  color: #0f172a;
+  background: #fbf8f3; /* paper-50 */
+  color: #14181b; /* ink-900 */
 }
 
 html {
@@ -27,16 +101,16 @@ html {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #e0f2fe;
+  background: #ece4d4;
 }
 ::-webkit-scrollbar-thumb {
-  background: #7dd3fc;
+  background: #8fc6c8;
   border-radius: 9999px;
 }
 
-/* Gradient text — sky → teal */
+/* Gradient text — teal → navy */
 .gradient-text {
-  background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+  background: linear-gradient(135deg, #137176, #18365b);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -45,20 +119,19 @@ html {
 /* Pulse ring (urgency) */
 @keyframes pulse-ring {
   0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35);
+    box-shadow: 0 0 0 0 rgba(188, 87, 80, 0.35);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 10px rgba(188, 87, 80, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 0 rgba(188, 87, 80, 0);
   }
 }
 .pulse-ring {
   animation: pulse-ring 2s ease-out infinite;
 }
 
-/* Skeleton shimmer */
 @keyframes shimmer {
   0% {
     background-position: -600px 0;
@@ -68,7 +141,7 @@ html {
   }
 }
 .skeleton {
-  background: linear-gradient(90deg, #e0f2fe 25%, #f0f9ff 50%, #e0f2fe 75%);
+  background: linear-gradient(90deg, #ece4d4 25%, #f5efe5 50%, #ece4d4 75%);
   background-size: 1200px 100%;
   animation: shimmer 1.6s ease infinite;
   border-radius: 6px;
