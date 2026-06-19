@@ -28,7 +28,7 @@ export default function PortalShell({
   if (!ready) return null;
 
   return (
-    <div className="min-h-screen bg-[#f0f7ff]">
+    <div className="min-h-screen bg-[#FBF8F3]">
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-sky-100 shadow-sm">
         <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
           <Logo size={34} />

@@ -36,7 +36,7 @@ export default function Logo({
         <span
           className={cn(
             "font-black tracking-tight leading-none select-none",
-            light ? "text-white" : "text-[#0F4C81]",
+            light ? "text-white" : "text-[#18365B]",
           )}
           style={{ fontSize: size * 0.5 }}
         >
