@@ -262,6 +262,13 @@ export class ClaimsService {
     return this.get(user, claim.id);
   }
 
+  /** OCR an uploaded claim document (bill / discharge summary) via Groq vision. */
+  async extractDocument(file: { buffer: Buffer; mimetype: string } | undefined) {
+    if (!file?.buffer) throw new BadRequestException("No file uploaded");
+    const base64 = file.buffer.toString("base64");
+    return this.ai.extractDocument(base64, file.mimetype || "image/jpeg");
+  }
+
   // ── listing + detail ─────────────────────────────────────
   async list(user: AuthUser, status?: string) {
     const where = this.scopeWhere(user);

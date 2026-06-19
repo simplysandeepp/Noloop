@@ -47,6 +47,32 @@ export class AiService {
     }
   }
 
+  /** OCR a claim document via the engine's Groq-vision /extract endpoint. */
+  async extractDocument(
+    imageBase64: string,
+    mimeType: string,
+  ): Promise<any> {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 30000);
+      const res = await fetch(`${this.engineUrl}/extract`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64, mimeType }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`engine returned ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      this.log.warn(`Document extraction failed: ${(err as Error).message}`);
+      return {
+        enabled: false,
+        note: "The AI engine is unreachable — fill the form manually.",
+      };
+    }
+  }
+
   // ──────────────────────────────────────────────────────────
   // In-process fallback — faithful to ai/app/pipeline/*.
   // ──────────────────────────────────────────────────────────

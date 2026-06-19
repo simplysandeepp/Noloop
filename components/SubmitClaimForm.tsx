@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, Trash2, Bot, Sparkles, Clock } from "lucide-react";
-import { authedGet, authedPost, inr, fmtTat } from "../lib/api";
+import { useEffect, useRef, useState } from "react";
+import { Plus, Trash2, Bot, Sparkles, Clock, ScanLine, Loader2 } from "lucide-react";
+import { authedGet, authedPost, inr, fmtTat, API_URL, getToken } from "../lib/api";
 import { VerdictBadge, SeverityBadge } from "./ui/dash";
 
 interface Insurer {
@@ -41,6 +41,45 @@ export default function SubmitClaimForm({ onSubmitted }: { onSubmitted?: () => v
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanNote, setScanNote] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function scanDocument(file: File) {
+    setScanning(true);
+    setScanNote(null);
+    setErr(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`${API_URL}/claims/extract`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message ?? "Scan failed");
+      if (data.patientName) setPatientName(data.patientName);
+      if (data.patientAge != null) setAge(String(data.patientAge));
+      if (data.patientGender) setGender(data.patientGender);
+      if (data.procedure) setProcedure(data.procedure);
+      if (data.admittedAt) setAdmittedAt(data.admittedAt);
+      if (data.dischargedAt) setDischargedAt(data.dischargedAt);
+      if (Array.isArray(data.lineItems) && data.lineItems.length)
+        setLines(
+          data.lineItems.map((li: any) => ({
+            desc: li.desc,
+            amount: String(Math.round(li.amountPaise / 100)),
+          })),
+        );
+      setScanNote(data.note ?? "Scanned.");
+    } catch (e) {
+      setScanNote(e instanceof Error ? e.message : "Scan failed");
+    } finally {
+      setScanning(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   useEffect(() => {
     authedGet<Insurer[]>("/catalog/insurers")
@@ -151,6 +190,30 @@ export default function SubmitClaimForm({ onSubmitted }: { onSubmitted?: () => v
       <p className="text-sm text-slate-500 -mt-2">
         The AI engine adjudicates instantly — coverage, fraud checks, and a payable amount.
       </p>
+
+      {/* Document scan (Groq vision OCR) */}
+      <div className="rounded-xl border border-dashed border-sky-200 bg-sky-50/40 p-3 flex items-center gap-3 flex-wrap">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => e.target.files?.[0] && scanDocument(e.target.files[0])}
+        />
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={scanning}
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-bold text-sky-700 bg-white border border-sky-200 hover:bg-sky-50 disabled:opacity-60"
+        >
+          {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
+          {scanning ? "Reading document…" : "Scan a bill / discharge (image)"}
+        </button>
+        <span className="text-xs text-slate-500">
+          Upload a photo — Groq vision auto-fills the fields below.
+        </span>
+        {scanNote && <span className="text-xs text-slate-600 w-full">{scanNote}</span>}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <label className="text-sm">
