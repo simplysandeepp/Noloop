@@ -1,32 +1,30 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { postJSON, storeToken, type AuthResponse } from "../../lib/api";
+import { postJSON, storeAuth, homeForRole, type AuthResponse } from "../../lib/api";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(null);
     try {
       const data = await postJSON<AuthResponse>("/auth/login", {
         email,
         password,
       });
-      storeToken(data.token);
-      setSuccess(`Logged in as ${data.user.name} (${data.user.role}).`);
+      storeAuth(data);
+      router.push(homeForRole(data.user.role));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
       setLoading(false);
     }
   }
@@ -44,7 +42,7 @@ export default function LoginPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@org.in"
+            placeholder="bir.hospital@noloop.in"
             required
           />
         </div>
@@ -65,7 +63,6 @@ export default function LoginPage() {
         </button>
 
         {error && <div className="msg msg-error">{error}</div>}
-        {success && <div className="msg msg-success">{success}</div>}
 
         <p className="alt">
           New here? <Link href="/signup">Create an account</Link>

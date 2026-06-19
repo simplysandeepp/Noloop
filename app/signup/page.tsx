@@ -1,44 +1,62 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { postJSON, storeToken, type AuthResponse } from "../../lib/api";
+import {
+  postJSON,
+  storeAuth,
+  homeForRole,
+  type AuthResponse,
+} from "../../lib/api";
 
 type OrgType = "HOSPITAL" | "INSURER";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [orgName, setOrgName] = useState("");
   const [orgType, setOrgType] = useState<OrgType>("HOSPITAL");
   const [adminName, setAdminName] = useState("");
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const [created, setCreated] = useState<AuthResponse | null>(null);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setSuccess(null);
     try {
       const data = await postJSON<AuthResponse>("/auth/signup", {
         orgName,
         orgType,
         adminName,
-        email,
         password,
       });
-      storeToken(data.token);
-      setSuccess(
-        `Account created — welcome, ${data.user.name} (${data.user.role}).`,
-      );
+      storeAuth(data);
+      setCreated(data);
+      // Brief pause so they can see their generated login email, then go in.
+      setTimeout(() => router.push(homeForRole(data.user.role)), 1800);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
       setLoading(false);
     }
+  }
+
+  if (created) {
+    return (
+      <main className="auth-page">
+        <div className="form-card">
+          <h1>Organization created 🎉</h1>
+          <p className="lead">Your system-generated login email is:</p>
+          <div className="msg msg-success" style={{ fontWeight: 700 }}>
+            {created.user.email}
+          </div>
+          <p className="alt">Taking you to your portal…</p>
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -46,7 +64,8 @@ export default function SignupPage() {
       <form className="form-card" onSubmit={onSubmit}>
         <h1>Create your organization</h1>
         <p className="lead">
-          Register your hospital or insurance company on NoLoop.
+          Register your hospital or insurance company. We&apos;ll generate your
+          login email from the organization name.
         </p>
 
         <div className="field">
@@ -55,7 +74,7 @@ export default function SignupPage() {
             id="orgName"
             value={orgName}
             onChange={(e) => setOrgName(e.target.value)}
-            placeholder="e.g. Apollo Hospital"
+            placeholder="e.g. Bir Hospital"
             required
           />
         </div>
@@ -84,18 +103,6 @@ export default function SignupPage() {
         </div>
 
         <div className="field">
-          <label htmlFor="email">Work email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@org.in"
-            required
-          />
-        </div>
-
-        <div className="field">
           <label htmlFor="password">Password</label>
           <input
             id="password"
@@ -113,7 +120,6 @@ export default function SignupPage() {
         </button>
 
         {error && <div className="msg msg-error">{error}</div>}
-        {success && <div className="msg msg-success">{success}</div>}
 
         <p className="alt">
           Already have an account? <Link href="/login">Log in</Link>
