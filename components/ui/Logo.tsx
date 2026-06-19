@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { cn } from "../../lib/utils";
 
 interface LogoProps {
@@ -8,18 +9,28 @@ interface LogoProps {
   showWordmark?: boolean;
   /** light variant — wordmark in white (for dark backgrounds) */
   light?: boolean;
+  /** where clicking the logo navigates (default: home) */
+  href?: string;
   className?: string;
 }
 
-/** NoLoop infinity-loop mark + wordmark (navy → teal gradient). */
+/** NoLoop infinity-loop mark + wordmark (navy → teal gradient). Clicks → home. */
 export default function Logo({
   size = 32,
   showWordmark = true,
   light = false,
+  href = "/",
   className,
 }: LogoProps) {
   return (
-    <div className={cn("flex items-center gap-2 shrink-0", className)}>
+    <Link
+      href={href}
+      aria-label="NoLoop — go to home"
+      className={cn(
+        "flex items-center gap-2 shrink-0 transition-opacity hover:opacity-80",
+        className,
+      )}
+    >
       <div
         className="rounded-lg bg-white flex items-center justify-center p-1 shadow-sm border border-sky-100"
         style={{ width: size, height: size }}
@@ -43,6 +54,6 @@ export default function Logo({
           NoLoop
         </span>
       )}
-    </div>
+    </Link>
   );
 }

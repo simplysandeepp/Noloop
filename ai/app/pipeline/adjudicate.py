@@ -3,8 +3,8 @@
 Turns coverage + fraud signals into a verdict, a payable amount (with an
 itemised deduction breakdown), and a plain-language rationale.
 
-Rule-based today; when ANTHROPIC_API_KEY is set, the rationale is rewritten by
-Claude (see pipeline.llm). The verdict logic mirrors policy reality: hard
+Rule-based today; when GROQ_API_KEY is set, the rationale is rewritten by a
+Groq-hosted LLM (see pipeline.llm). The verdict logic mirrors policy reality: hard
 violations deny, soft anomalies query, clean claims approve.
 """
 
