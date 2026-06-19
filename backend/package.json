@@ -11,7 +11,8 @@
     "prisma:migrate": "bunx prisma migrate dev",
     "prisma:studio": "bunx prisma studio",
     "create:admin": "bun scripts/create-platform-admin.ts",
-    "gen:claims": "bun scripts/generate-synthetic-claims.ts"
+    "gen:claims": "bun scripts/generate-synthetic-claims.ts",
+    "seed:demo": "bun scripts/seed-demo.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

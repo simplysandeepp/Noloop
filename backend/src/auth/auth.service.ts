@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
-import { Role, TenantType, User } from "@prisma/client";
+import { Role, TenantType, User, UserStatus } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { SignupDto } from "./dto/signup.dto";
 import { LoginDto } from "./dto/login.dto";
@@ -66,6 +66,9 @@ export class AuthService {
 
     const ok = await bcrypt.compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException("Invalid credentials");
+
+    if (user.status === UserStatus.REVOKED)
+      throw new UnauthorizedException("Account access has been revoked");
 
     await this.prisma.activityLog.create({
       data: { tenantId: user.tenantId, actorId: user.id, action: "LOGIN" },

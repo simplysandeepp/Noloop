@@ -35,6 +35,63 @@ enum Role {
   PATIENT
 }
 
+// Whether a user can currently log in. Admin can revoke / restore.
+enum UserStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum ClaimType {
+  CASHLESS
+  REIMBURSEMENT
+}
+
+// The AI engine's verdict (mirrors Noloop/ai Verdict enum).
+enum Verdict {
+  APPROVE
+  DENY
+  QUERY
+}
+
+// Lifecycle of a claim through the platform.
+enum ClaimStatus {
+  SUBMITTED // received, not yet processed
+  PROCESSING // AI engine running
+  APPROVED // auto-approved by AI (or insurer)
+  DENIED // auto-denied by AI (or insurer)
+  QUERIED // AI raised a query — awaiting hospital response
+  UNDER_REVIEW // routed to a human adjudicator
+  SETTLED // insurer has paid / closed
+}
+
+enum FraudSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+}
+
+enum AdmissionStatus {
+  ADMITTED
+  DISCHARGED
+}
+
+enum ClaimEventType {
+  SUBMITTED
+  AI_STARTED
+  AI_DECISION
+  FRAUD_FLAGGED
+  QUERY_RAISED
+  OVERRIDDEN
+  SETTLED
+  NOTE
+}
+
 model Tenant {
   id        String     @id @default(cuid())
   type      TenantType
@@ -44,22 +101,36 @@ model Tenant {
   users        User[]
   activityLogs ActivityLog[]
 
+  // Insurer-owned
+  policies       Policy[]
+  patients       Patient[]
+  insurerClaims  Claim[]     @relation("InsurerClaims")
+  // Hospital-owned
+  wards          Ward[]
+  beds           Bed[]
+  admissions     Admission[]
+  hospitalClaims Claim[]     @relation("HospitalClaims")
+
   @@index([type])
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String     @id @default(cuid())
+  email        String     @unique
   name         String?
   // bcrypt hash — never the raw password.
   passwordHash String
   role         Role
+  status       UserStatus @default(ACTIVE)
   // Null for PATIENT (cross-tenant) and PLATFORM_ADMIN.
   tenantId     String?
-  tenant       Tenant?  @relation(fields: [tenantId], references: [id])
-  createdAt    DateTime @default(now())
+  tenant       Tenant?    @relation(fields: [tenantId], references: [id])
+  createdAt    DateTime   @default(now())
 
-  activityLogs ActivityLog[] @relation("ActorLogs")
+  activityLogs    ActivityLog[] @relation("ActorLogs")
+  submittedClaims Claim[]       @relation("SubmittedBy")
+  decidedClaims   Claim[]       @relation("OverriddenBy")
+  claimEvents     ClaimEvent[]
 
   @@index([tenantId])
   @@index([role])
@@ -81,5 +152,218 @@ model ActivityLog {
 
   @@index([tenantId])
   @@index([actorId])
+  @@index([createdAt])
+}
+
+// ─────────────────────────────────────────────────────────────
+// Insurance product. Owned by an INSURER tenant. Drives coverage.
+// ─────────────────────────────────────────────────────────────
+model Policy {
+  id                     String   @id @default(cuid())
+  insurerTenantId        String
+  insurer                Tenant   @relation(fields: [insurerTenantId], references: [id])
+  name                   String
+  planCode               String
+  sumInsuredPaise        Int
+  roomRentCapPerDayPaise Int?
+  copayPct               Int      @default(0)
+  waitingPeriodDays      Int      @default(0)
+  coveredProcedures      String[]
+  exclusions             String[]
+  createdAt              DateTime @default(now())
+
+  patients Patient[]
+  claims   Claim[]
+
+  @@index([insurerTenantId])
+}
+
+// A policyholder. Belongs to an insurer; may be admitted at any hospital.
+model Patient {
+  id              String   @id @default(cuid())
+  insurerTenantId String
+  insurer         Tenant   @relation(fields: [insurerTenantId], references: [id])
+  policyId        String?
+  policy          Policy?  @relation(fields: [policyId], references: [id])
+  memberId        String   @unique
+  name            String
+  age             Int
+  gender          String
+  phone           String?
+  createdAt       DateTime @default(now())
+
+  admissions Admission[]
+  claims     Claim[]
+
+  @@index([insurerTenantId])
+}
+
+// A physical ward in a hospital — groups beds.
+model Ward {
+  id               String   @id @default(cuid())
+  hospitalTenantId String
+  hospital         Tenant   @relation(fields: [hospitalTenantId], references: [id])
+  name             String
+  createdAt        DateTime @default(now())
+
+  beds Bed[]
+
+  @@index([hospitalTenantId])
+}
+
+// A single bed. Occupancy drives the hospital's live capacity dashboard.
+model Bed {
+  id               String    @id @default(cuid())
+  hospitalTenantId String
+  hospital         Tenant    @relation(fields: [hospitalTenantId], references: [id])
+  wardId           String
+  ward             Ward      @relation(fields: [wardId], references: [id])
+  label            String
+  status           BedStatus @default(AVAILABLE)
+  createdAt        DateTime  @default(now())
+
+  admissions Admission[]
+
+  @@index([hospitalTenantId])
+  @@index([wardId])
+}
+
+// A patient occupying a bed. Discharge generates a claim.
+model Admission {
+  id               String          @id @default(cuid())
+  hospitalTenantId String
+  hospital         Tenant          @relation(fields: [hospitalTenantId], references: [id])
+  bedId            String?
+  bed              Bed?            @relation(fields: [bedId], references: [id])
+  patientId        String?
+  patient          Patient?        @relation(fields: [patientId], references: [id])
+  patientName      String
+  patientAge       Int
+  patientGender    String
+  diagnosis        String
+  procedure        String
+  status           AdmissionStatus @default(ADMITTED)
+  admittedAt       DateTime        @default(now())
+  dischargedAt     DateTime?
+  createdAt        DateTime        @default(now())
+
+  claim Claim?
+
+  @@index([hospitalTenantId])
+  @@index([status])
+}
+
+// ─────────────────────────────────────────────────────────────
+// The core: a health-insurance claim, adjudicated by the AI engine.
+// All money in paise (Int) to avoid float drift.
+// ─────────────────────────────────────────────────────────────
+model Claim {
+  id          String    @id @default(cuid())
+  claimNumber String    @unique
+  type        ClaimType @default(CASHLESS)
+
+  hospitalTenantId String
+  hospital         Tenant @relation("HospitalClaims", fields: [hospitalTenantId], references: [id])
+  insurerTenantId  String
+  insurer          Tenant @relation("InsurerClaims", fields: [insurerTenantId], references: [id])
+
+  policyId    String?
+  policy      Policy?    @relation(fields: [policyId], references: [id])
+  patientId   String?
+  patient     Patient?   @relation(fields: [patientId], references: [id])
+  admissionId String?    @unique
+  admission   Admission? @relation(fields: [admissionId], references: [id])
+
+  // Denormalized snapshot of the claim packet (so it's self-contained).
+  patientName      String
+  patientAge       Int
+  patientGender    String
+  diagnosis        String
+  procedure        String
+  admittedAt       DateTime
+  dischargedAt     DateTime
+  lengthOfStayDays Int
+  sumInsuredPaise  Int
+  billedPaise      Int
+  lineItems        Json
+
+  status ClaimStatus @default(SUBMITTED)
+
+  // AI decision (mirrored from the latest Decision for fast querying).
+  verdict             Verdict?
+  approvedAmountPaise Int?
+  confidence          Float?
+  rationale           String?
+  citedClauseRefs     String[]
+  aiModel             String?
+  aiLatencyMs         Int?
+  tatSeconds          Int?
+
+  submittedById String?
+  submittedBy   User?   @relation("SubmittedBy", fields: [submittedById], references: [id])
+
+  // Human override by an insurer adjudicator.
+  overriddenById String?
+  overriddenBy   User?     @relation("OverriddenBy", fields: [overriddenById], references: [id])
+  overrideNote   String?
+  overriddenAt   DateTime?
+
+  submittedAt DateTime  @default(now())
+  decidedAt   DateTime?
+  settledAt   DateTime?
+
+  decisions  Decision[]
+  fraudFlags FraudFlag[]
+  events     ClaimEvent[]
+
+  @@index([hospitalTenantId])
+  @@index([insurerTenantId])
+  @@index([status])
+  @@index([submittedAt])
+}
+
+// Immutable record of one AI adjudication run (history if re-run).
+model Decision {
+  id                  String   @id @default(cuid())
+  claimId             String
+  claim               Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  verdict             Verdict
+  approvedAmountPaise Int?
+  confidence          Float
+  rationale           String
+  citedClauseRefs     String[]
+  model               String
+  latencyMs           Int
+  createdAt           DateTime @default(now())
+
+  @@index([claimId])
+}
+
+// A fraud / anomaly signal raised on a claim.
+model FraudFlag {
+  id        String        @id @default(cuid())
+  claimId   String
+  claim     Claim         @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  signal    String
+  severity  FraudSeverity
+  detail    String
+  createdAt DateTime      @default(now())
+
+  @@index([claimId])
+}
+
+// Append-only timeline for a claim (powers the tracking views).
+model ClaimEvent {
+  id        String         @id @default(cuid())
+  claimId   String
+  claim     Claim          @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  type      ClaimEventType
+  message   String
+  actorId   String?
+  actor     User?          @relation(fields: [actorId], references: [id])
+  metadata  Json?
+  createdAt DateTime       @default(now())
+
+  @@index([claimId])
   @@index([createdAt])
 }
