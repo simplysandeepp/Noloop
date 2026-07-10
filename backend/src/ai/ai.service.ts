@@ -117,7 +117,10 @@ export class AiService {
     );
     const total = packet.bill.totalPaise;
     const sumInsured = packet.policy.sumInsuredPaise;
-    const overCapOverage = total > sumInsured && lineSum <= sumInsured;
+    const overCapOverage =
+      total > sumInsured &&
+      lineSum <= sumInsured &&
+      total - lineSum > sumInsured * 0.5;
     if (lineSum !== total && !overCapOverage) {
       flags.push({
         signal: "BILL_MATH_MISMATCH",
@@ -134,7 +137,7 @@ export class AiService {
         detail: `Stay of ${los} days far exceeds the ~${benchmark}-day benchmark for ${packet.admission.procedure}.`,
       });
     }
-    if (total > sumInsured) {
+    if (total > sumInsured && lineSum <= sumInsured) {
       flags.push({
         signal: "AMOUNT_OUTLIER",
         severity: "MEDIUM",

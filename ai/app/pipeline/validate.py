@@ -23,24 +23,21 @@ def validate(packet: ClaimPacket, coverage: CoverageResult) -> list[FraudFlag]:
     flags: list[FraudFlag] = []
 
     # 1. Bill math — line items must sum to the stated total.
-    #    Exception: when the genuine line items reconcile to within the sum
-    #    insured but the *stated total* is inflated past it, the gap is a
-    #    coverage-cap overage (AMOUNT_OUTLIER → query), not arithmetic fraud
-    #    (BILL_MATH_MISMATCH → deny). If the line items themselves already blow
-    #    the cap, an extra mismatch on top is still treated as fraud.
+    #    Exception: when the gap is clearly a coverage-cap overage (total is
+    #    inflated orders of magnitude beyond line items) rather than a subtle
+    #    math fraud, suppress the hard deny and let AMOUNT_OUTLIER trigger query.
+    total = packet.bill.totalPaise
+    si = packet.policy.sumInsuredPaise
     line_sum = sum(li.amountPaise for li in packet.bill.lineItems)
-    over_cap_overage = (
-        packet.bill.totalPaise > packet.policy.sumInsuredPaise
-        and line_sum <= packet.policy.sumInsuredPaise
-    )
-    if line_sum != packet.bill.totalPaise and not over_cap_overage:
+    over_cap_overage = total > si and line_sum <= si and (total - line_sum) > si * 0.5
+    if line_sum != total and not over_cap_overage:
         flags.append(
             FraudFlag(
                 signal=FraudSignal.BILL_MATH_MISMATCH,
                 severity=Severity.HIGH,
                 detail=(
                     f"Line items sum to ₹{line_sum/100:,.0f} but the bill total is "
-                    f"₹{packet.bill.totalPaise/100:,.0f}."
+                    f"₹{total/100:,.0f}."
                 ),
             )
         )
@@ -61,15 +58,17 @@ def validate(packet: ClaimPacket, coverage: CoverageResult) -> list[FraudFlag]:
             )
         )
 
-    # 3. Amount outlier — total exceeds the sum insured.
-    if packet.bill.totalPaise > packet.policy.sumInsuredPaise:
+    # 3. Amount outlier — inflated total exceeds the sum insured beyond what
+    #    the line items justify. When the line items themselves already exceed
+    #    the cap, the cost is simply high (not anomalous).
+    if total > si and line_sum <= si:
         flags.append(
             FraudFlag(
                 signal=FraudSignal.AMOUNT_OUTLIER,
                 severity=Severity.MEDIUM,
                 detail=(
-                    f"Claimed ₹{packet.bill.totalPaise/100:,.0f} exceeds the sum insured "
-                    f"₹{packet.policy.sumInsuredPaise/100:,.0f}."
+                    f"Claimed ₹{total/100:,.0f} exceeds the sum insured "
+                    f"₹{si/100:,.0f}."
                 ),
             )
         )

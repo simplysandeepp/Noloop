@@ -4,6 +4,10 @@ POST /adjudicate  → run a claim packet through the pipeline, return a Decision
 GET  /health      → liveness.
 """
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -34,3 +38,9 @@ def adjudicate_claim(packet: ClaimPacket) -> Decision:
 @app.post("/extract", response_model=ExtractResult)
 def extract_claim_document(req: ExtractRequest) -> ExtractResult:
     return extract_document(req)
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
