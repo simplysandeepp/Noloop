@@ -35,6 +35,15 @@ export default function LandingPage() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            {/* TODO: temporary demo link — remove once product is ready */}
+            <a
+              href="https://youtu.be/946GA4_ADkc?si=Zpp9CV9ecDXSeQLU"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 transition-all shadow-sm"
+            >
+              Demo
+            </a>
             <button
               onClick={() => router.push("/login")}
               className="px-4 py-2 text-sm font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-sky-50 hover:border-sky-200 hover:text-sky-700 transition-all shadow-sm"
