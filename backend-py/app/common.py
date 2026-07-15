@@ -1,6 +1,7 @@
 """Ports of src/common/slug.ts + the activity-log helper."""
 
 import re
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,6 +9,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from . import models as m
 
 EMAIL_DOMAIN = "noloop.in"
+
+
+def iso(dt: datetime | None) -> str | None:
+    """Serialize like Prisma/JS: UTC, milliseconds, trailing Z. The DB stores
+    naive UTC timestamps; without the Z the browser parses them as local time."""
+    if dt is None:
+        return None
+    return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
 
 
 def to_dotted(name: str) -> str:
