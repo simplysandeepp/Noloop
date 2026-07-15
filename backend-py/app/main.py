@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .errors import install_error_handlers
-from .routers import auth, health
+from .routers import admin, auth, health, org
 
 app = FastAPI(title="NoLoop API", docs_url="/docs", redoc_url=None)
 install_error_handlers(app)
@@ -25,3 +25,5 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(org.router)
+app.include_router(admin.router)
