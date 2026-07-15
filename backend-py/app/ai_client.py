@@ -10,6 +10,7 @@ import time
 
 import httpx
 
+from .common import js_round
 from .config import get_settings
 
 
@@ -248,7 +249,7 @@ def _payable(packet: dict) -> tuple[int, list[dict]]:
             gross -= excess
     copay = packet["policy"].get("copayPct") or 0
     if copay > 0:
-        amt = round(gross * copay / 100)
+        amt = js_round(gross * copay / 100)
         deductions.append({"label": f"{copay}% co-pay", "amountPaise": amt})
         gross -= amt
     return max(0, gross), deductions
