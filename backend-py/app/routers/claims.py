@@ -15,7 +15,7 @@ from sqlalchemy.orm import selectinload
 from .. import ai_client
 from .. import models as m
 from ..ai_client import inr
-from ..common import iso
+from ..common import iso, js_round
 from ..db import get_db
 from ..deps import require_roles
 from .. import deps
@@ -425,7 +425,7 @@ async def submit(
             type=m.ClaimEventType.AI_DECISION,
             message=(
                 f"AI verdict: {decision['verdict']} "
-                f"({round(decision['confidence'] * 100)}% confidence, {latency_ms}ms). "
+                f"({js_round(decision['confidence'] * 100)}% confidence, {latency_ms}ms). "
                 f"{decision['rationale']}"
             ),
         )

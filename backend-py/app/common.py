@@ -1,5 +1,6 @@
 """Ports of src/common/slug.ts + the activity-log helper."""
 
+import math
 import re
 from datetime import datetime
 
@@ -9,6 +10,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from . import models as m
 
 EMAIL_DOMAIN = "noloop.in"
+
+
+def js_round(x: float) -> int:
+    """JS Math.round — half-up. Python's round() is half-to-even (12.5→12,
+    JS gives 13), which silently drifts percentages vs the old backend."""
+    return math.floor(x + 0.5)
 
 
 def iso(dt: datetime | None) -> str | None:
