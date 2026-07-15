@@ -25,10 +25,10 @@ flowchart TB
         A[⚙️ Admin Dashboard<br/>orgs, users, policy KB, audit]
     end
 
-    subgraph Backend["One Backend (NestJS)"]
+    subgraph Backend["One Backend (FastAPI)"]
         AUTH[Auth + RBAC<br/>+ multi-tenancy]
         API[REST API]
-        Q[Queue - BullMQ]
+        Q[Queue - arq/Celery planned]
     end
 
     subgraph Engine["AI Adjudication Engine (FastAPI)"]
@@ -53,7 +53,7 @@ flowchart TB
     Q --> RD
 ```
 
-One NestJS API serves all roles — responses are scoped by the caller's **role + tenant**. The frontend never touches the database directly.
+One FastAPI API serves all roles — responses are scoped by the caller's **role + tenant**. The frontend never touches the database directly.
 
 ## The golden path — end-to-end claim workflow
 
@@ -61,7 +61,7 @@ One NestJS API serves all roles — responses are scoped by the caller's **role 
 sequenceDiagram
     autonumber
     actor HS as Hospital Staff
-    participant BE as Backend (NestJS)
+    participant BE as Backend (FastAPI)
     participant AI as AI Engine
     actor IN as Insurer Adjudicator
     actor PT as Patient
@@ -144,7 +144,7 @@ Real insurer policy documents can't be used (IP/legal). All input data is **synt
 | Piece | Tech | Where |
 |---|---|---|
 | Frontend (hospital / insurer / patient) | Next.js 15, React 19, Tailwind 4, Bun | `/` (this repo root) |
-| Backend API | NestJS + Prisma | `/backend` |
+| Backend API | FastAPI + SQLAlchemy 2.0 (async) | `/backend` |
 | AI Engine | FastAPI + Claude + pgvector RAG | `/ai` |
 | Admin dashboard | Next.js (separate repo) | `Noloop-admin` |
 | Data | Supabase Postgres + pgvector, Supabase Storage, Upstash Redis | — |

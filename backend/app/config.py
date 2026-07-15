@@ -1,21 +1,16 @@
-"""Settings — same env contract as backend/ (NestJS reads these names too).
-
-Reads backend/.env by default so both backends share one config during the
-migration; a local backend-py/.env wins if present.
-"""
+"""Settings — env names carried over unchanged from the retired NestJS backend."""
 
 from functools import lru_cache
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_HERE = Path(__file__).resolve().parent.parent  # backend-py/
-_NEST_ENV = _HERE.parent / "backend" / ".env"
+_HERE = Path(__file__).resolve().parent.parent  # backend/
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=[str(_NEST_ENV), str(_HERE / ".env")],
+        env_file=str(_HERE / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
