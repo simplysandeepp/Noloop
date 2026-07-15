@@ -1,0 +1,15 @@
+# NoLoop core backend — FastAPI port of backend/ (NestJS).
+# Python 3.12 (pin — 3.13/3.14 may lack ML wheels; see docs/techstack.md).
+fastapi==0.116.*
+uvicorn[standard]==0.35.*
+pydantic==2.*
+pydantic-settings==2.*
+sqlalchemy[asyncio]==2.0.*
+asyncpg==0.30.*
+alembic==1.16.*
+passlib==1.7.*
+bcrypt==4.0.1          # pinned: passlib 1.7 breaks with bcrypt>=4.1
+pyjwt==2.*
+httpx==0.28.*
+cuid2==2.*
+python-dotenv==1.*
