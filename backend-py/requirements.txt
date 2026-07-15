@@ -11,5 +11,6 @@ passlib==1.7.*
 bcrypt==4.0.1          # pinned: passlib 1.7 breaks with bcrypt>=4.1
 pyjwt==2.*
 httpx==0.28.*
+python-multipart==0.0.*
 cuid2==2.*
 python-dotenv==1.*
