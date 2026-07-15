@@ -8,9 +8,11 @@ must not notice the swap. Runs on :4001 during the migration; takes over
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import health
+from .errors import install_error_handlers
+from .routers import auth, health
 
 app = FastAPI(title="NoLoop API", docs_url="/docs", redoc_url=None)
+install_error_handlers(app)
 
 # Allow the frontend + admin (different subdomains) to call the API.
 app.add_middleware(
@@ -22,3 +24,4 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(auth.router)
