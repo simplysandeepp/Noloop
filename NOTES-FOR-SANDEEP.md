@@ -95,6 +95,40 @@ Optional prod deps in `ai/requirements-rag.txt`.
 
 ---
 
+## ✅ #18 — Observability  (branch `feat/observability`)
+
+Structured logging + request tracing + Prometheus metrics on **both** FastAPI
+services.
+
+**Added**: `backend/app/observability.py` + `ai/app/observability.py`
+- **structlog JSON logs** — one access line per request: method, route (template,
+  not raw path → bounded cardinality), status, latency_ms, request_id, and (core
+  API) tenant_id + user_id from the JWT. **PHI-safe: ids only**, never patient
+  names/diagnoses/tokens.
+- **Request-ID middleware** — reads/generates `X-Request-ID`, stores it in a
+  contextvar, echoes it on the response. `ai_client` now **forwards** it to the
+  AI engine, so one claim submission is traceable web → core API → AI engine.
+- **Prometheus** at `GET /internal/metrics` on both services (the analytics
+  router already owns `/metrics`, hence the `/internal` path). Golden signals
+  (RED: request count + latency histogram per route/status) + **business metrics**:
+  claims submitted, AI verdict distribution, fraud-flag counts, engine fallback
+  rate, login failures (core); adjudications/verdict, engine model, RAG coverage
+  outcomes, pipeline latency (AI engine).
+
+**Impl note**: used `prometheus_client` directly instead of
+`prometheus-fastapi-instrumentator` — the instrumentator's `.expose()` broke on
+the pinned FastAPI/Starlette combo. Direct usage is version-robust and gives full
+control over metric names/labels.
+
+**Verified**: backend 21 passed, ai 34 passed, ruff clean on both.
+
+**Follow-ups (from the issue, not done here)**: OpenTelemetry/OTLP tracing export
+(Grafana/Honeycomb), uptime checks + alert rules, and the Grafana dashboard are
+infra/config to set up when deploying (#16). The metric + trace-id plumbing they
+need is now in place.
+
+---
+
 ## Skipped / needs-you
 
 - **#13 (stale admin password in `docs/creds.md`)** — `docs/` is gitignored

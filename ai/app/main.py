@@ -13,7 +13,9 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from . import observability
 from .extract import extract_document
+from .observability import setup_observability
 from .pipeline.engine import run_pipeline
 from .rag import coverage_for_policy
 from .schemas import (
@@ -34,6 +36,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+setup_observability(app, service="ai-engine")
+
 
 @app.get("/health")
 def health() -> dict:
@@ -42,7 +46,10 @@ def health() -> dict:
 
 @app.post("/adjudicate", response_model=Decision)
 def adjudicate_claim(packet: ClaimPacket) -> Decision:
-    return run_pipeline(packet)
+    with observability.PIPELINE_LATENCY.time():
+        decision = run_pipeline(packet)
+    observability.record_decision(decision.verdict.value, decision.model)
+    return decision
 
 
 @app.post("/extract", response_model=ExtractResult)
@@ -56,6 +63,7 @@ def rag_coverage(query: CoverageQuery) -> CoverageAnswer:
     citations and a low-confidence refusal path. Handy for demos and debugging
     the RAG layer that the adjudication pipeline uses internally."""
     rc = coverage_for_policy(query.procedure, query.policy.model_dump())
+    observability.COVERAGE_DECISIONS.labels(decision=rc.decision).inc()
     return CoverageAnswer(
         decision=rc.decision,
         covered=rc.covered,
