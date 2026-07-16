@@ -205,6 +205,22 @@ are easy next steps on this module (noted in the issue).
 
 ---
 
+## ✅ #21 — Database scaling  (branch `feat/db-scaling`)
+
+- **Migration** `0002_perf_indexes` (additive, `CREATE INDEX IF NOT EXISTS` →
+  idempotent): `Claim(hospitalTenantId,status)`, `Claim(insurerTenantId,status)`,
+  `Claim(submittedAt DESC)`, `ClaimEvent(claimId,createdAt)`,
+  `ActivityLog(createdAt DESC)` — the hot query paths.
+- **Runbook** `backend/DB_SCALING.md`: indexing (with EXPLAIN/pg_stat_statements
+  guidance + CONCURRENTLY note for big tables), monthly range-partitioning plan +
+  trigger points, pgbouncer connection-math, and a backup/restore drill + "DB is
+  gone at 9am" runbook (RTO/RPO).
+
+**Verified**: migration compiles, ruff clean, backend 36 passed. (Applying the
+migration needs the DB — run `alembic upgrade head` when you're on it.)
+
+---
+
 ## Skipped / needs-you
 
 - **#13 (stale admin password in `docs/creds.md`)** — `docs/` is gitignored
