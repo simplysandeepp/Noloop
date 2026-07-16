@@ -221,9 +221,35 @@ migration needs the DB — run `alembic upgrade head` when you're on it.)
 
 ---
 
-## Skipped / needs-you
+## ✅ #22 — Load testing & capacity planning  (branch `feat/load-testing`)
 
-- **#13 (stale admin password in `docs/creds.md`)** — `docs/` is gitignored
-  (local-only, and must never hold committed creds), and the fix needs either the
-  real password or a live DB + running server to reset it. Can't do safely/blindly
-  here. See the dedicated note lower in this file when I reach it.
+- **k6 scenarios** in `backend/loadtest/`: `read-mix` (steady reads, p95<500ms),
+  `login-storm` (200/5min — bcrypt hot spot + rate limiter), `claim-burst`
+  (500/10min — run queue on/off, idempotency proof). Open-model arrival-rate
+  executors → avoids coordinated omission.
+- **`CAPACITY.md`**: initial SLOs, run instructions, capacity-math template
+  (RPS → instances at 2×/5×/10× vs pooler limit), method notes.
+- **`.github/workflows/loadtest.yml`**: manual-trigger only, refuses non-staging
+  URLs, installs k6, runs the chosen scenario.
+
+**Verified**: workflow YAML valid; all 3 scripts pass `node --check`.
+**Follow-ups**: OCR-burst + 2h soak templates noted in CAPACITY.md.
+
+---
+
+## ✅ #13 — Stale admin password  (branch `feat/creds-reset-helper`)
+
+Root cause of the bind: the documented `admin@noloop.in` password no longer
+verifies, and you **can't** use the admin reset API because logging in as that
+admin is exactly what's broken (chicken-and-egg).
+
+**Fix**: `backend/scripts/reset_password.py` — an **offline** reset that talks
+straight to the DB (no server/login needed):
+```
+cd backend && python -m scripts.reset_password admin@noloop.in
+# prints a fresh temp password once → put it in your local (gitignored) docs/creds.md
+```
+`docs/creds.md` stays gitignored/local — never committed. Nothing here contains
+real credentials.
+
+**Verified**: script compiles, `--help` works (no DB touched), ruff clean.
