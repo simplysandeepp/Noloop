@@ -9,9 +9,15 @@ from .. import models as m
 from ..common import log_activity, to_dotted, unique_email
 from ..db import get_db
 from ..deps import CurrentUser
+from ..hardening import rate_limit
+from ..observability import LOGIN_FAILURES
 from ..security import hash_password, sign_token, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+# Per-IP abuse limits — /login is the credential-stuffing target, so tighter.
+LoginRateLimit = Depends(rate_limit("auth-login", limit=10, window=60))
+SignupRateLimit = Depends(rate_limit("auth-signup", limit=5, window=60))
 
 
 class SignupIn(BaseModel):
@@ -41,7 +47,7 @@ def _issue(user: m.User) -> dict:
 
 
 @router.post("/signup")
-async def signup(dto: SignupIn, db: AsyncSession = Depends(get_db)):
+async def signup(dto: SignupIn, db: AsyncSession = Depends(get_db), _rl: None = SignupRateLimit):
     """Create an org (tenant) + its first admin, atomically. The admin's
     email is generated from the org name: "Acme Hospital" ->
     acme.hospital@noloop.in (numeric suffix on collision)."""
@@ -78,14 +84,16 @@ async def signup(dto: SignupIn, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login")
-async def login(dto: LoginIn, db: AsyncSession = Depends(get_db)):
+async def login(dto: LoginIn, db: AsyncSession = Depends(get_db), _rl: None = LoginRateLimit):
     user = (
         await db.execute(select(m.User).where(m.User.email == dto.email))
     ).scalar_one_or_none()
     if not user:
+        LOGIN_FAILURES.inc()
         raise HTTPException(401, "Invalid credentials")
 
     if not verify_password(dto.password, user.passwordHash):
+        LOGIN_FAILURES.inc()
         raise HTTPException(401, "Invalid credentials")
 
     if user.status == m.UserStatus.REVOKED:
