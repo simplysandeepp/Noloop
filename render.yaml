@@ -1,9 +1,15 @@
-# Render blueprint — NoLoop backend services (issue #16).
-# Core API + AI engine as web services, and the arq worker as a background worker.
-# The two Next.js frontends deploy on Vercel (see DEPLOY.md), not here.
+# Render blueprint — NoLoop backend (issue #16).
+# FREE-tier setup: the two FastAPI services run on Render's free web plan, and
+# the async worker is OMITTED (background workers have NO free tier on Render).
+# Without the worker, the API adjudicates synchronously (NOLOOP_USE_QUEUE=0) —
+# this is the default and fully supported path.
 #
+# The two Next.js frontends deploy on Vercel (see DEPLOY.md), not here.
 # Secrets (sync:false) are set once in the Render dashboard, never committed.
 # Apply: Render → New → Blueprint → point at this repo.
+#
+# To upgrade later: change plan: free → starter, and re-enable the worker block
+# at the bottom (set NOLOOP_USE_QUEUE=1 on all services).
 
 services:
   # ── Core API (FastAPI) ──────────────────────────────────
@@ -11,7 +17,7 @@ services:
     name: noloop-api
     runtime: python
     rootDir: backend
-    plan: starter
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
@@ -27,13 +33,13 @@ services:
         sync: false
       - key: JWT_EXPIRES_IN
         value: 7d
-      - key: REDIS_URL             # Upstash — rate limiter + queue
+      - key: REDIS_URL             # Upstash — rate limiter (queue off on free tier)
         sync: false
       - key: CORS_ORIGINS          # comma-separated Vercel domains
         sync: false
-      - key: NOLOOP_USE_QUEUE
-        value: "1"
-      - key: AI_ENGINE_URL         # internal URL of noloop-ai (set to its https URL)
+      - key: NOLOOP_USE_QUEUE      # 0 = synchronous adjudication (no worker needed)
+        value: "0"
+      - key: AI_ENGINE_URL         # set to noloop-ai's https URL after it deploys
         sync: false
 
   # ── AI engine (FastAPI) ─────────────────────────────────
@@ -41,7 +47,7 @@ services:
     name: noloop-ai
     runtime: python
     rootDir: ai
-    plan: starter
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
@@ -53,31 +59,36 @@ services:
         sync: false
       - key: NOLOOP_LLM_MODEL
         value: llama-3.3-70b-versatile
+      - key: NOLOOP_VISION_MODEL
+        value: meta-llama/llama-4-scout-17b-16e-instruct
       - key: NOLOOP_RAG_COVERAGE
         value: "1"
       # For production semantic retrieval, also install requirements-rag.txt and set:
       #   NOLOOP_EMBEDDING_BACKEND=sentence-transformers, NOLOOP_RAG_STORE=pgvector,
       #   DATABASE_URL=<supabase>  (see ai/RAG.md)
 
-  # ── Async worker (arq) ──────────────────────────────────
-  - type: worker
-    name: noloop-worker
-    runtime: python
-    rootDir: backend
-    plan: starter
-    buildCommand: pip install -r requirements.txt
-    startCommand: arq app.worker.WorkerSettings
-    autoDeploy: true
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.12"
-      - key: DATABASE_URL
-        sync: false
-      - key: DIRECT_URL
-        sync: false
-      - key: REDIS_URL
-        sync: false
-      - key: NOLOOP_USE_QUEUE
-        value: "1"
-      - key: AI_ENGINE_URL
-        sync: false
+  # ── Async worker (arq) — DISABLED on free tier ──────────
+  # Background workers require a paid Render plan. Re-enable this block (and set
+  # NOLOOP_USE_QUEUE=1 everywhere) when you move off the free tier.
+  #
+  # - type: worker
+  #   name: noloop-worker
+  #   runtime: python
+  #   rootDir: backend
+  #   plan: starter
+  #   buildCommand: pip install -r requirements.txt
+  #   startCommand: arq app.worker.WorkerSettings
+  #   autoDeploy: true
+  #   envVars:
+  #     - key: PYTHON_VERSION
+  #       value: "3.12"
+  #     - key: DATABASE_URL
+  #       sync: false
+  #     - key: DIRECT_URL
+  #       sync: false
+  #     - key: REDIS_URL
+  #       sync: false
+  #     - key: NOLOOP_USE_QUEUE
+  #       value: "1"
+  #     - key: AI_ENGINE_URL
+  #       sync: false
