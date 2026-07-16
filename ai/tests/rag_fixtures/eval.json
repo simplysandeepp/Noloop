@@ -1,0 +1,20 @@
+{
+  "doc": "sample_policy.md",
+  "cases": [
+    {"q": "Appendectomy", "ref": "2_COVERED_PROCEDURES", "decision": "COVERED"},
+    {"q": "Cataract Surgery", "ref": "2_COVERED_PROCEDURES", "decision": "COVERED"},
+    {"q": "Knee Replacement", "ref": "2_COVERED_PROCEDURES", "decision": "COVERED"},
+    {"q": "Dialysis Session", "ref": "2_COVERED_PROCEDURES", "decision": "COVERED"},
+    {"q": "Cosmetic Rhinoplasty", "ref": "7_EXCLUSIONS", "decision": "EXCLUDED"},
+    {"q": "LASIK Eye Surgery", "ref": "7_EXCLUSIONS", "decision": "EXCLUDED"},
+    {"q": "Dental Implants", "ref": "7_EXCLUSIONS", "decision": "EXCLUDED"},
+    {"q": "Bariatric surgery for weight loss", "ref": "7_EXCLUSIONS", "decision": "EXCLUDED"},
+    {"q": "Liver Transplant", "ref": null, "decision": "NOT_FOUND"},
+    {"q": "Rhabdomyolysis experimental gene therapy", "ref": null, "decision": "NOT_FOUND"},
+    {"q": "What is the room rent limit per day?", "ref": "4_ROOM_RENT_LIMIT", "decision": null},
+    {"q": "How much co-payment is deducted from a claim?", "ref": "5_CO_PAYMENT", "decision": null},
+    {"q": "waiting period for pre-existing diseases", "ref": "6_WAITING_PERIODS", "decision": null},
+    {"q": "maximum aggregate amount payable sum insured", "ref": "3_SUM_INSURED", "decision": null},
+    {"q": "how do I submit a reimbursement claim after discharge", "ref": "8_CLAIMS_PROCEDURE", "decision": null}
+  ]
+}

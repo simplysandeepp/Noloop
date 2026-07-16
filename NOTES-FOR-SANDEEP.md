@@ -43,6 +43,58 @@ later PR has a real gate to pass.
 
 ---
 
+## ✅ #15 — RAG service (capstone centerpiece)  (branch `feat/rag-service`)
+
+Built a full RAG layer in `ai/app/rag/` that powers the pipeline's **coverage**
+stage with citation-grounded, low-hallucination answers. **Runs fully offline
+with zero setup** (hashing embedder + in-memory BM25/vector store) and upgrades
+to real semantic embeddings + pgvector **by env only**, no code changes.
+
+**Added (`ai/app/rag/`)**
+- `chunk.py` — structure-aware chunking; every chunk carries a **clause ref** so
+  citations are real (`citedClauseRefs = ["7_EXCLUSIONS"]`, not a literal).
+- `embeddings.py` — pluggable embedders: deterministic `hash` (default, offline,
+  dependency-free) and optional `sentence-transformers` (bge-small/all-MiniLM).
+- `store.py` — `InMemoryStore`: Okapi BM25 + brute-force cosine, namespaced.
+- `pgstore.py` — `PgVectorStore`: Postgres FTS + pgvector HNSW (prod, optional deps).
+- `retrieve.py` — **hybrid BM25+vector fused with RRF**, optional cross-encoder
+  rerank, and a ranking-agreement **confidence** for the anti-hallucination gate.
+- `coverage.py` — grounded coverage decision; **refuses (NOT_FOUND → review) below
+  a confidence floor**; exclusions beat coverage; only cites retrieved clauses.
+- `policy_doc.py` — synthesizes a wording doc from structured policy fields so
+  there's always a real, citable corpus even without uploaded PDFs.
+- `service.py` — resolves corpus (ingested pgvector doc → synthesized) per policy,
+  caches the in-memory store by content hash.
+- `schema.sql` — pgvector DDL (extension, table, HNSW + GIN indexes).
+
+**Wiring**: `pipeline/coverage.py` now uses RAG by default (`NOLOOP_RAG_COVERAGE=1`)
+and **falls back to the old exact-list check** if disabled or on any error, so
+adjudication can never break. New `POST /rag/coverage` demo endpoint on the AI engine.
+
+**Eval + tests**: `scripts/eval_rag.py` + `tests/rag_fixtures/` (a realistic policy
++ 15-case eval set). CI gate `test_rag_eval.py` enforces Recall@k ≥ 0.9, MRR ≥ 0.75,
+coverage accuracy ≥ 0.9. **Current: Recall@k 100%, MRR 0.923, coverage 100%.**
+Plus 15 RAG unit tests (chunking, embeddings, BM25, vector, RRF, refusal path).
+`scripts/ingest.py` CLI for ingesting policy docs (`--dry-run` or pgvector upsert).
+
+**Verified**: ai 31 passed, ruff clean; the 6 pipeline verdict fixtures still pass
+*through* the RAG coverage path (no verdict regressions). Groq not required.
+
+**Docs**: `ai/RAG.md` (architecture, config, ingestion, eval, prod upgrade path).
+Optional prod deps in `ai/requirements-rag.txt`.
+
+**Notes / follow-ups**
+- `PgVectorStore` and the `sentence-transformers`/reranker paths are implemented
+  but **not exercised in CI** (no DB / heavy models in CI). Validate against a real
+  Supabase pgvector instance before relying on them in prod; the DDL is in
+  `ai/app/rag/schema.sql` (set `VECTOR(dim)` to your model, e.g. 384 for MiniLM).
+- The offline default embedder is lexical-ish; real semantic recall arrives when
+  you flip `NOLOOP_EMBEDDING_BACKEND=sentence-transformers`.
+- `ai/docs/` is gitignored (root `.gitignore` ignores any `docs/`), so RAG docs
+  live at `ai/RAG.md`.
+
+---
+
 ## Skipped / needs-you
 
 - **#13 (stale admin password in `docs/creds.md`)** — `docs/` is gitignored
