@@ -28,3 +28,5 @@ dist/
 backend/data/
 
 docs
+.vercel
+.env*
