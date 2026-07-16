@@ -11,9 +11,9 @@ load_dotenv()
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .schemas import ClaimPacket, Decision, ExtractRequest, ExtractResult
-from .pipeline.engine import run_pipeline
 from .extract import extract_document
+from .pipeline.engine import run_pipeline
+from .schemas import ClaimPacket, Decision, ExtractRequest, ExtractResult
 
 app = FastAPI(title="NoLoop AI Engine", version="0.1.0")
 

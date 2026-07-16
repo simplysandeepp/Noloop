@@ -8,10 +8,10 @@ typed object so the whole pipeline is testable and evaluable.
 """
 
 from ..schemas import ClaimPacket, Decision
-from .coverage import check_coverage
-from .validate import validate
 from .adjudicate import adjudicate
+from .coverage import check_coverage
 from .llm import enrich_rationale
+from .validate import validate
 
 
 def run_pipeline(packet: ClaimPacket) -> Decision:
