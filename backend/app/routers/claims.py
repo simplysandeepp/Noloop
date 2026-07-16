@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from .. import ai_client
+from .. import ai_client, observability
 from .. import models as m
 from ..ai_client import inr
 from ..common import iso, js_round
@@ -391,6 +391,7 @@ async def submit(
         ),
     }
     decision, latency_ms = await ai_client.adjudicate(packet)
+    observability.record_decision(decision)
 
     decided_at = _now()
     tat_seconds = max(0, int((decided_at - submitted_at).total_seconds() + 0.5))

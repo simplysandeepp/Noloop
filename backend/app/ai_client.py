@@ -13,6 +13,21 @@ import httpx
 from .common import js_round
 from .config import get_settings
 
+try:
+    from .observability import REQUEST_ID_HEADER, get_request_id
+except Exception:  # pragma: no cover — observability optional at import time
+
+    def get_request_id() -> str:
+        return "-"
+
+    REQUEST_ID_HEADER = "X-Request-ID"
+
+
+def _trace_headers() -> dict:
+    """Propagate the current request id to the AI engine for cross-service tracing."""
+    rid = get_request_id()
+    return {REQUEST_ID_HEADER: rid} if rid and rid != "-" else {}
+
 
 def inr(paise_over_100: float) -> str:
     """(x).toLocaleString('en-IN') for the amounts we print: Indian digit
@@ -43,7 +58,9 @@ async def adjudicate(packet: dict) -> tuple[dict, int]:
     try:
         async with httpx.AsyncClient(timeout=8.0) as client:
             res = await client.post(
-                f"{get_settings().ai_engine_url}/adjudicate", json=packet
+                f"{get_settings().ai_engine_url}/adjudicate",
+                json=packet,
+                headers=_trace_headers(),
             )
             res.raise_for_status()
             decision = res.json()
@@ -59,6 +76,7 @@ async def extract_document(image_base64: str, mime_type: str) -> dict:
             res = await client.post(
                 f"{get_settings().ai_engine_url}/extract",
                 json={"imageBase64": image_base64, "mimeType": mime_type},
+                headers=_trace_headers(),
             )
             res.raise_for_status()
             return res.json()
