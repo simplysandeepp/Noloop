@@ -1,0 +1,47 @@
+name: Load test (manual)
+
+# Manual-trigger only — NEVER runs automatically, NEVER against prod or the shared
+# dev DB. You pass the staging target and a scenario at dispatch time.
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: "Target API base URL (staging only)"
+        required: true
+      scenario:
+        description: "k6 script to run"
+        required: true
+        default: read-mix.js
+        type: choice
+        options:
+          - read-mix.js
+          - login-storm.js
+          - claim-burst.js
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard against non-staging targets
+        run: |
+          case "${{ inputs.base_url }}" in
+            *staging*|*localhost*|*127.0.0.1*) echo "target ok" ;;
+            *) echo "::error::Refusing to load-test a non-staging URL"; exit 1 ;;
+          esac
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install -y k6
+      - name: Run scenario
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          TOKEN: ${{ secrets.LOADTEST_TOKEN }}
+          INSURER_TENANT_ID: ${{ secrets.LOADTEST_INSURER_TENANT_ID }}
+          LOGIN_EMAIL: ${{ secrets.LOADTEST_LOGIN_EMAIL }}
+          LOGIN_PASSWORD: ${{ secrets.LOADTEST_LOGIN_PASSWORD }}
+          CLAIM_ID: ${{ secrets.LOADTEST_CLAIM_ID }}
+          CLAIM_NUMBER: ${{ secrets.LOADTEST_CLAIM_NUMBER }}
+        run: k6 run "backend/loadtest/${{ inputs.scenario }}"
