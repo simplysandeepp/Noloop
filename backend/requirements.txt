@@ -19,3 +19,5 @@ structlog>=25
 prometheus-client>=0.20
 # Security hardening (issue #19) — rate-limiter Redis backend (optional at runtime)
 redis>=5
+# Async task queue (issue #14) — arq worker on Upstash Redis
+arq>=0.26

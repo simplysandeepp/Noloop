@@ -157,6 +157,34 @@ done deliberately, noted for you:
 
 ---
 
+## ✅ #14 — Async task queue (arq)  (branch `feat/async-task-queue`)
+
+Moves claim adjudication off the request path, **opt-in** and fully
+backward-compatible.
+
+**Added**
+- `backend/app/adjudication.py` — the run-engine-and-persist logic **extracted
+  verbatim** from `claims.submit` so the inline path and the worker can never
+  drift. Includes `packet_from_claim` (worker rebuilds the packet from the DB row).
+- `backend/app/queue.py` — `enqueue_adjudication()`; enqueues to arq when
+  `NOLOOP_USE_QUEUE=1` + Redis reachable, else **returns False → caller
+  adjudicates inline**. Idempotency: arq `job_id = adj:<claimNumber>`.
+- `backend/app/worker.py` — `arq app.worker.WorkerSettings`; loads the claim,
+  runs the shared adjudication, **idempotent** (skips if already decided),
+  retries with backoff (`max_tries=4`).
+- `claims.submit` now enqueues when enabled, else runs inline — **default off, so
+  today's synchronous behaviour and all tests are unchanged**.
+
+**Run the worker**: `cd backend && arq app.worker.WorkerSettings` (needs
+`REDIS_URL` + `NOLOOP_USE_QUEUE=1`).
+
+**Verified**: backend 32 passed, ruff clean, all modules import without Redis.
+
+**Follow-ups**: also queue `/claims/extract` (Groq shield) and add DLQ handling —
+noted in the issue; the queue plumbing to do it is in place.
+
+---
+
 ## Skipped / needs-you
 
 - **#13 (stale admin password in `docs/creds.md`)** — `docs/` is gitignored
