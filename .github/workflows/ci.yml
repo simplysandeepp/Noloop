@@ -1,0 +1,68 @@
+name: CI
+
+# PR + main quality gates: lint and test both Python services and build the web
+# frontend. Kept fast and hermetic — the Python jobs need no database (unit tests
+# only) and no secrets (Groq/DB URLs are optional and absent in CI).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend (lint + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install deps
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Ruff lint
+        run: ruff check app tests
+      - name: Pytest
+        run: pytest tests
+
+  ai:
+    name: ai-engine (lint + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install deps
+        run: pip install -r requirements.txt -r requirements-dev.txt
+      - name: Ruff lint
+        run: ruff check app tests
+      - name: Pytest (engine eval gate)
+        run: pytest tests
+
+  web:
+    name: web (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install deps
+        run: bun install --frozen-lockfile
+      - name: Build
+        run: bun run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"

@@ -1,0 +1,25 @@
+{
+  "ref": "FIX-QUERY-OUTLIER",
+  "type": "REIMBURSEMENT",
+  "policy": {
+    "sumInsuredPaise": 5000000,
+    "copayPct": 0,
+    "coveredProcedures": ["Appendectomy"],
+    "exclusions": []
+  },
+  "admission": {
+    "admittedAt": "2026-03-25",
+    "dischargedAt": "2026-03-27",
+    "lengthOfStayDays": 2,
+    "procedure": "Appendectomy",
+    "diagnosis": "Acute appendicitis"
+  },
+  "bill": {
+    "lineItems": [
+      {"desc": "Room charges (2 days)", "amountPaise": 1000000},
+      {"desc": "Appendectomy", "amountPaise": 3000000}
+    ],
+    "totalPaise": 9000000
+  },
+  "groundTruth": {"verdict": "QUERY"}
+}

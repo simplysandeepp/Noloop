@@ -1,6 +1,6 @@
 """Port of src/metrics — the role-scoped analytics summary."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
@@ -90,7 +90,7 @@ async def summary(user: dict = AnyRole, db: AsyncSession = Depends(get_db)):
     )
 
     # 7-day trend (oldest → newest), UTC days like JS toISOString().
-    today = datetime.now(timezone.utc)
+    today = datetime.now(UTC)
     trend = []
     for i in range(6, -1, -1):
         key = (today - timedelta(days=i)).strftime("%Y-%m-%d")

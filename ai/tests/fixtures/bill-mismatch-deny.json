@@ -1,0 +1,25 @@
+{
+  "ref": "FIX-DENY-MATH",
+  "type": "CASHLESS",
+  "policy": {
+    "sumInsuredPaise": 50000000,
+    "copayPct": 0,
+    "coveredProcedures": ["Appendectomy"],
+    "exclusions": []
+  },
+  "admission": {
+    "admittedAt": "2026-03-25",
+    "dischargedAt": "2026-03-26",
+    "lengthOfStayDays": 1,
+    "procedure": "Appendectomy",
+    "diagnosis": "Acute appendicitis"
+  },
+  "bill": {
+    "lineItems": [
+      {"desc": "Room charges (1 days)", "amountPaise": 500000},
+      {"desc": "Appendectomy", "amountPaise": 1500000}
+    ],
+    "totalPaise": 2500000
+  },
+  "groundTruth": {"verdict": "DENY"}
+}
