@@ -1,0 +1,83 @@
+# Render blueprint — NoLoop backend services (issue #16).
+# Core API + AI engine as web services, and the arq worker as a background worker.
+# The two Next.js frontends deploy on Vercel (see DEPLOY.md), not here.
+#
+# Secrets (sync:false) are set once in the Render dashboard, never committed.
+# Apply: Render → New → Blueprint → point at this repo.
+
+services:
+  # ── Core API (FastAPI) ──────────────────────────────────
+  - type: web
+    name: noloop-api
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: DATABASE_URL          # Supabase pooler (pgbouncer, transaction mode)
+        sync: false
+      - key: DIRECT_URL            # Supabase direct (Alembic migrations)
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: REDIS_URL             # Upstash — rate limiter + queue
+        sync: false
+      - key: CORS_ORIGINS          # comma-separated Vercel domains
+        sync: false
+      - key: NOLOOP_USE_QUEUE
+        value: "1"
+      - key: AI_ENGINE_URL         # internal URL of noloop-ai (set to its https URL)
+        sync: false
+
+  # ── AI engine (FastAPI) ─────────────────────────────────
+  - type: web
+    name: noloop-ai
+    runtime: python
+    rootDir: ai
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: GROQ_API_KEY          # optional — engine + RAG run without it
+        sync: false
+      - key: NOLOOP_LLM_MODEL
+        value: llama-3.3-70b-versatile
+      - key: NOLOOP_RAG_COVERAGE
+        value: "1"
+      # For production semantic retrieval, also install requirements-rag.txt and set:
+      #   NOLOOP_EMBEDDING_BACKEND=sentence-transformers, NOLOOP_RAG_STORE=pgvector,
+      #   DATABASE_URL=<supabase>  (see ai/RAG.md)
+
+  # ── Async worker (arq) ──────────────────────────────────
+  - type: worker
+    name: noloop-worker
+    runtime: python
+    rootDir: backend
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: arq app.worker.WorkerSettings
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: NOLOOP_USE_QUEUE
+        value: "1"
+      - key: AI_ENGINE_URL
+        sync: false
