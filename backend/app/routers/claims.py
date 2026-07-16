@@ -12,10 +12,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from .. import ai_client, observability
+from .. import adjudication, ai_client, queue
 from .. import models as m
 from ..ai_client import inr
-from ..common import iso, js_round
+from ..common import iso
 from ..db import get_db
 from ..deps import require_roles
 from ..hardening import rate_limit
@@ -391,78 +391,15 @@ async def submit(
             f"{dto.procedure}; {los} day(s); billed ₹{inr(billed / 100)}."
         ),
     }
-    decision, latency_ms = await ai_client.adjudicate(packet)
-    observability.record_decision(decision)
+    # 3. Adjudicate — off the request path via the queue when enabled, else inline.
+    if await queue.enqueue_adjudication(claim.id, claim_number):
+        # Enqueued: the worker will run the engine and finish the claim. It stays
+        # PROCESSING; frontends already poll/track by status.
+        return await _get_full(db, user, claim.id)
 
-    decided_at = _now()
-    tat_seconds = max(0, int((decided_at - submitted_at).total_seconds() + 0.5))
-    status = _verdict_to_status(decision["verdict"])
-
-    # 3. Persist decision, flags, and closing events; mirror onto the claim.
-    db.add(
-        m.Decision(
-            claimId=claim.id,
-            verdict=m.Verdict(decision["verdict"]),
-            approvedAmountPaise=decision.get("approvedAmountPaise"),
-            confidence=decision["confidence"],
-            rationale=decision["rationale"],
-            citedClauseRefs=decision["citedClauseRefs"],
-            model=decision["model"],
-            latencyMs=latency_ms,
-        )
-    )
-    for f in decision["fraudFlags"]:
-        db.add(
-            m.FraudFlag(
-                claimId=claim.id,
-                signal=f["signal"],
-                severity=_severity(f["severity"]),
-                detail=f["detail"],
-            )
-        )
-    db.add(
-        m.ClaimEvent(
-            claimId=claim.id,
-            type=m.ClaimEventType.AI_DECISION,
-            message=(
-                f"AI verdict: {decision['verdict']} "
-                f"({js_round(decision['confidence'] * 100)}% confidence, {latency_ms}ms). "
-                f"{decision['rationale']}"
-            ),
-        )
-    )
-    if decision["fraudFlags"]:
-        db.add(
-            m.ClaimEvent(
-                claimId=claim.id,
-                type=m.ClaimEventType.FRAUD_FLAGGED,
-                message=(
-                    f"{len(decision['fraudFlags'])} anomaly signal(s): "
-                    + ", ".join(f["signal"] for f in decision["fraudFlags"])
-                    + "."
-                ),
-            )
-        )
-    if decision["verdict"] == "QUERY":
-        db.add(
-            m.ClaimEvent(
-                claimId=claim.id,
-                type=m.ClaimEventType.QUERY_RAISED,
-                message="Routed for review — additional information required.",
-            )
-        )
-    claim.status = status
-    claim.verdict = m.Verdict(decision["verdict"])
-    claim.approvedAmountPaise = decision.get("approvedAmountPaise")
-    claim.confidence = decision["confidence"]
-    claim.rationale = decision["rationale"]
-    claim.citedClauseRefs = decision["citedClauseRefs"]
-    claim.aiModel = decision["model"]
-    claim.aiLatencyMs = latency_ms
-    claim.tatSeconds = tat_seconds
-    claim.decidedAt = decided_at
-    await db.commit()
-
+    # Inline fallback (queue disabled/unavailable) — today's synchronous flow,
+    # using the exact same shared logic the worker runs.
+    await adjudication.run_adjudication(db, claim, packet, submitted_at)
     return await _get_full(db, user, claim.id)
 
 
