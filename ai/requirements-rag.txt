@@ -1,0 +1,17 @@
+# Optional RAG extras for PRODUCTION semantic retrieval + pgvector.
+# The RAG layer works WITHOUT these (hashing embedder + in-memory store);
+# install them to enable local semantic embeddings, a cross-encoder reranker,
+# pgvector persistence, and rich-document (PDF/DOCX) ingestion.
+#
+#   pip install -r requirements.txt -r requirements-rag.txt
+
+# Local semantic embeddings + cross-encoder reranker (bge-small / all-MiniLM).
+sentence-transformers>=3.0
+
+# pgvector persistence (Supabase Postgres).
+psycopg[binary]>=3.2
+pgvector>=0.3
+
+# Rich-document parsing for ingestion (choose one; both are heavy).
+# docling>=2.0
+# unstructured>=0.15
