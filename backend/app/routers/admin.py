@@ -8,6 +8,7 @@ from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from .. import cache
 from .. import models as m
 from ..common import iso, log_activity, to_compact, to_dotted, unique_email
 from ..db import get_db
@@ -87,14 +88,19 @@ async def _count(db: AsyncSession, model, *where) -> int:
 
 @router.get("/stats")
 async def stats(user: dict = PlatformAdmin, db: AsyncSession = Depends(get_db)):
-    return {
-        "orgs": await _count(db, m.Tenant),
-        "hospitals": await _count(db, m.Tenant, m.Tenant.type == m.TenantType.HOSPITAL),
-        "insurers": await _count(db, m.Tenant, m.Tenant.type == m.TenantType.INSURER),
-        "users": await _count(db, m.User),
-        "claims": await _count(db, m.Claim),
-        "logs": await _count(db, m.ActivityLog),
-    }
+    # TTL-only cache (30s): 6 COUNT()s per hit; being a few seconds stale on a
+    # dashboard is fine, so no explicit invalidation. Stampede-protected.
+    async def _load():
+        return {
+            "orgs": await _count(db, m.Tenant),
+            "hospitals": await _count(db, m.Tenant, m.Tenant.type == m.TenantType.HOSPITAL),
+            "insurers": await _count(db, m.Tenant, m.Tenant.type == m.TenantType.INSURER),
+            "users": await _count(db, m.User),
+            "claims": await _count(db, m.Claim),
+            "logs": await _count(db, m.ActivityLog),
+        }
+
+    return await cache.cached_json(cache.key("admin", "stats"), 30, _load)
 
 
 @router.get("/orgs")
