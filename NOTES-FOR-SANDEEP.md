@@ -185,6 +185,26 @@ noted in the issue; the queue plumbing to do it is in place.
 
 ---
 
+## ✅ #23 — Redis caching layer  (branch `feat/redis-caching`)
+
+**Added**: `backend/app/cache.py` — cache-aside on Upstash Redis, namespaced
+`noloop:v1:…` (version prefix → bulk-bust on deploy), per-process asyncio
+single-flight to blunt stampedes, and a **graceful no-op** without `REDIS_URL`
+(every helper falls back to calling the loader).
+
+**Applied** (consistency choice documented per key):
+- `/admin/stats` — **TTL-only 30s** (6 COUNTs/hit; eventual staleness is fine).
+- `/track/{n}` — **TTL 15s + read-after-write invalidation**: override/settle/
+  respond delete the key so patients see updates immediately; TTL covers the AI
+  transition.
+
+**Verified**: backend 36 passed, ruff clean, app imports clean.
+
+**Follow-ups**: `/org/overview` + AI policy-packet caching and hit/miss metrics
+are easy next steps on this module (noted in the issue).
+
+---
+
 ## Skipped / needs-you
 
 - **#13 (stale admin password in `docs/creds.md`)** — `docs/` is gitignored

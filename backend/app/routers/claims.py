@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from .. import adjudication, ai_client, queue
+from .. import adjudication, ai_client, cache, queue
 from .. import models as m
 from ..ai_client import inr
 from ..common import iso
@@ -533,6 +533,7 @@ async def override(
             )
         )
     await db.commit()
+    await _invalidate_track(db, claim_id)
     return await _get_full(db, user, claim_id)
 
 
@@ -552,6 +553,7 @@ async def settle(
         )
     )
     await db.commit()
+    await _invalidate_track(db, claim_id)
     return await _get_full(db, user, claim_id)
 
 
@@ -574,6 +576,7 @@ async def respond(
         )
     )
     await db.commit()
+    await _invalidate_track(db, claim_id)
     return await _get_full(db, user, claim_id)
 
 
@@ -586,38 +589,59 @@ async def track(
     db: AsyncSession = Depends(get_db),
     _rl: None = Depends(rate_limit("track", limit=30, window=60)),
 ):
-    """Public claim tracking — a patient can follow a claim by its number."""
-    claim = (
-        await db.execute(
-            select(m.Claim)
-            .where(m.Claim.claimNumber == claim_number)
-            .options(
-                selectinload(m.Claim.hospital),
-                selectinload(m.Claim.insurer),
-                selectinload(m.Claim.events),
-                selectinload(m.Claim.fraudFlags),
+    """Public claim tracking — a patient can follow a claim by its number.
+
+    Cached 15s with read-after-write invalidation: the human write paths
+    (override/settle/respond) delete this key so patients see updates at once;
+    the 15s TTL covers the AI-decision transition."""
+
+    async def _load():
+        claim = (
+            await db.execute(
+                select(m.Claim)
+                .where(m.Claim.claimNumber == claim_number)
+                .options(
+                    selectinload(m.Claim.hospital),
+                    selectinload(m.Claim.insurer),
+                    selectinload(m.Claim.events),
+                    selectinload(m.Claim.fraudFlags),
+                )
             )
-        )
+        ).scalar_one_or_none()
+        if not claim:
+            raise HTTPException(404, "No claim with that number")
+        return {
+            "claimNumber": claim.claimNumber,
+            "patientName": claim.patientName,
+            "procedure": claim.procedure,
+            "hospital": claim.hospital.name,
+            "insurer": claim.insurer.name,
+            "status": claim.status.value,
+            "verdict": claim.verdict.value if claim.verdict else None,
+            "billedPaise": claim.billedPaise,
+            "approvedAmountPaise": claim.approvedAmountPaise,
+            "rationale": claim.rationale,
+            "tatSeconds": claim.tatSeconds,
+            "submittedAt": iso(claim.submittedAt),
+            "decidedAt": iso(claim.decidedAt),
+            "settledAt": iso(claim.settledAt),
+            "events": [
+                _event_row(e) for e in sorted(claim.events, key=lambda e: e.createdAt)
+            ],
+            "flagCount": len(claim.fraudFlags),
+        }
+
+    return await cache.cached_json(_track_key(claim_number), 15, _load)
+
+
+def _track_key(claim_number: str) -> str:
+    return cache.key("track", claim_number)
+
+
+async def _invalidate_track(db: AsyncSession, claim_id: str) -> None:
+    """Delete the cached /track view after a write (read-after-write)."""
+    num = (
+        await db.execute(select(m.Claim.claimNumber).where(m.Claim.id == claim_id))
     ).scalar_one_or_none()
-    if not claim:
-        raise HTTPException(404, "No claim with that number")
-    return {
-        "claimNumber": claim.claimNumber,
-        "patientName": claim.patientName,
-        "procedure": claim.procedure,
-        "hospital": claim.hospital.name,
-        "insurer": claim.insurer.name,
-        "status": claim.status.value,
-        "verdict": claim.verdict.value if claim.verdict else None,
-        "billedPaise": claim.billedPaise,
-        "approvedAmountPaise": claim.approvedAmountPaise,
-        "rationale": claim.rationale,
-        "tatSeconds": claim.tatSeconds,
-        "submittedAt": iso(claim.submittedAt),
-        "decidedAt": iso(claim.decidedAt),
-        "settledAt": iso(claim.settledAt),
-        "events": [
-            _event_row(e) for e in sorted(claim.events, key=lambda e: e.createdAt)
-        ],
-        "flagCount": len(claim.fraudFlags),
-    }
+    if num:
+        await cache.delete(_track_key(num))
