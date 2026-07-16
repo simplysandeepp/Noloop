@@ -14,8 +14,8 @@ from pathlib import Path
 # Allow running as `python -m scripts.eval` from the ai/ root.
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.schemas import ClaimPacket  # noqa: E402
 from app.pipeline.engine import run_pipeline  # noqa: E402
+from app.schemas import ClaimPacket  # noqa: E402
 
 DEFAULT_DIR = (
     Path(__file__).resolve().parents[2] / "backend" / "data" / "synthetic"

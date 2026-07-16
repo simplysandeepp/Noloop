@@ -121,6 +121,30 @@ class ExtractResult(BaseModel):
     model: str | None = None
 
 
+# ── RAG coverage (citation-grounded) ──
+class CoverageQuery(BaseModel):
+    procedure: str
+    policy: Policy
+
+
+class CoverageEvidence(BaseModel):
+    ref: str
+    heading: str
+    snippet: str
+    score: float
+
+
+class CoverageAnswer(BaseModel):
+    decision: str  # COVERED | EXCLUDED | NOT_FOUND
+    covered: bool
+    reason: str
+    citedClauseRefs: list[str] = Field(default_factory=list)
+    confidence: float
+    grounded: bool
+    method: str
+    evidence: list[CoverageEvidence] = Field(default_factory=list)
+
+
 class Decision(BaseModel):
     ref: str
     verdict: Verdict
