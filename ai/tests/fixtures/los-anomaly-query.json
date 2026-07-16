@@ -1,0 +1,25 @@
+{
+  "ref": "FIX-QUERY-LOS",
+  "type": "CASHLESS",
+  "policy": {
+    "sumInsuredPaise": 50000000,
+    "copayPct": 0,
+    "coveredProcedures": ["Cataract Surgery"],
+    "exclusions": []
+  },
+  "admission": {
+    "admittedAt": "2026-03-01",
+    "dischargedAt": "2026-03-15",
+    "lengthOfStayDays": 14,
+    "procedure": "Cataract Surgery",
+    "diagnosis": "Cataract, right eye"
+  },
+  "bill": {
+    "lineItems": [
+      {"desc": "Room charges (14 days)", "amountPaise": 1400000},
+      {"desc": "Cataract Surgery", "amountPaise": 1600000}
+    ],
+    "totalPaise": 3000000
+  },
+  "groundTruth": {"verdict": "QUERY"}
+}

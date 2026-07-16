@@ -19,8 +19,8 @@ def current_user(request: Request) -> dict:
         raise HTTPException(401, "Missing bearer token")
     try:
         return decode_token(header[7:])
-    except pyjwt.PyJWTError:
-        raise HTTPException(401, "Invalid or expired token")
+    except pyjwt.PyJWTError as e:
+        raise HTTPException(401, "Invalid or expired token") from e
 
 
 CurrentUser = Annotated[dict, Depends(current_user)]

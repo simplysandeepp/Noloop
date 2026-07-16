@@ -1,6 +1,6 @@
 """Port of src/beds — live capacity, admit into first free bed, discharge."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -197,7 +197,7 @@ async def discharge(
         return _admission_row(admission)
 
     admission.status = m.AdmissionStatus.DISCHARGED
-    admission.dischargedAt = datetime.now(timezone.utc).replace(tzinfo=None)
+    admission.dischargedAt = datetime.now(UTC).replace(tzinfo=None)
     if admission.bedId:
         bed = await db.get(m.Bed, admission.bedId)
         if bed:

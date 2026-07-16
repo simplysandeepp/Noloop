@@ -1,0 +1,28 @@
+{
+  "ref": "FIX-APPROVE",
+  "type": "CASHLESS",
+  "policy": {
+    "policyNo": "POL-TEST",
+    "sumInsuredPaise": 50000000,
+    "roomRentCapPerDayPaise": 700000,
+    "copayPct": 0,
+    "coveredProcedures": ["Appendectomy", "Cataract Surgery"],
+    "exclusions": ["Cosmetic Rhinoplasty"]
+  },
+  "admission": {
+    "admittedAt": "2026-03-25",
+    "dischargedAt": "2026-03-26",
+    "lengthOfStayDays": 1,
+    "procedure": "Appendectomy",
+    "diagnosis": "Acute appendicitis"
+  },
+  "bill": {
+    "lineItems": [
+      {"desc": "Room charges (1 days)", "amountPaise": 664900},
+      {"desc": "Appendectomy", "amountPaise": 5289100},
+      {"desc": "Medicines & consumables", "amountPaise": 402700}
+    ],
+    "totalPaise": 6356700
+  },
+  "groundTruth": {"verdict": "APPROVE"}
+}

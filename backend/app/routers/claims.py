@@ -3,7 +3,7 @@
 import base64
 import secrets
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
@@ -18,7 +18,6 @@ from ..ai_client import inr
 from ..common import iso, js_round
 from ..db import get_db
 from ..deps import require_roles
-from .. import deps
 
 router = APIRouter(prefix="/claims", tags=["claims"])
 track_router = APIRouter(prefix="/track", tags=["track"])
@@ -81,15 +80,15 @@ def _parse_dt(raw: str) -> datetime:
     """new Date(isoString) equivalent — store naive UTC like Prisma."""
     try:
         dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
-    except ValueError:
-        raise HTTPException(400, "Invalid date")
+    except ValueError as e:
+        raise HTTPException(400, "Invalid date") from e
     if dt.tzinfo:
-        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        dt = dt.astimezone(UTC).replace(tzinfo=None)
     return dt
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 async def _new_claim_number(db: AsyncSession) -> str:

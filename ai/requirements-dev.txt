@@ -1,0 +1,6 @@
+# Dev/CI-only deps for the AI engine. Install with:
+#   pip install -r requirements.txt -r requirements-dev.txt
+-r requirements.txt
+ruff==0.15.*
+pytest==9.*
+pytest-asyncio==1.*

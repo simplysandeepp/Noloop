@@ -1,0 +1,25 @@
+{
+  "ref": "FIX-DENY-EXCL",
+  "type": "REIMBURSEMENT",
+  "policy": {
+    "sumInsuredPaise": 50000000,
+    "copayPct": 0,
+    "coveredProcedures": ["Appendectomy"],
+    "exclusions": ["Cosmetic Rhinoplasty", "LASIK Eye Surgery"]
+  },
+  "admission": {
+    "admittedAt": "2026-03-25",
+    "dischargedAt": "2026-03-26",
+    "lengthOfStayDays": 1,
+    "procedure": "Cosmetic Rhinoplasty",
+    "diagnosis": "Elective cosmetic procedure"
+  },
+  "bill": {
+    "lineItems": [
+      {"desc": "Procedure", "amountPaise": 1500000},
+      {"desc": "Room charges (1 days)", "amountPaise": 500000}
+    ],
+    "totalPaise": 2000000
+  },
+  "groundTruth": {"verdict": "DENY"}
+}
