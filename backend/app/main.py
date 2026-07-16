@@ -9,10 +9,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .errors import install_error_handlers
+from .observability import setup_observability
 from .routers import admin, auth, beds, catalog, claims, health, metrics, org
 
 app = FastAPI(title="NoLoop API", docs_url="/docs", redoc_url=None)
 install_error_handlers(app)
+setup_observability(app, service="noloop-api")
 
 # Allow the frontend + admin (different subdomains) to call the API.
 app.add_middleware(
