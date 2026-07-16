@@ -129,6 +129,34 @@ need is now in place.
 
 ---
 
+## ✅ #19 — API security hardening  (branch `feat/security-hardening`)
+
+**Added**: `backend/app/hardening.py` + wiring in `main.py`, `auth.py`, `claims.py`
+- **Security headers** middleware: `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, HSTS.
+- **Body-size limit** middleware (10MB) — rejects oversized uploads at 413 before
+  routing/DB, in the Nest error shape.
+- **CORS allowlist** via `CORS_ORIGINS` env (comma-separated) — replaces the
+  `.*` regex when set; keeps the permissive default when unset (dev).
+- **Rate limiter**: per-IP fixed-window, two backends — in-process (default) and
+  Redis (when `REDIS_URL` set, namespaced `noloop:v1:rl:…`). **Fails open** on
+  backend errors (never locks a healthcare system out). 429 in Nest error shape.
+  Applied: `/auth/login` (10/min), `/auth/signup` (5/min), `/track/{n}` (30/min).
+- **Audit/metrics**: `/auth/login` now increments `noloop_login_failures_total`.
+
+**Verified**: backend 26 passed, ruff clean, app imports clean.
+
+**Follow-ups (from the issue, not done here)** — larger auth-lifecycle work best
+done deliberately, noted for you:
+- Refresh-token rotation + short-lived access tokens (currently single 7d JWT).
+- Redis token-revocation list (immediate logout / REVOKED enforcement).
+- Per-account exponential lockout on `/auth/login` (IP limit is in; per-account
+  needs a keyed counter + a small schema/consideration).
+- Extend `ActivityLog` to 403s / admin-destructive actions with actor + IP, and
+  assert ActivityLog immutability. PHI-in-prompt masking review (data-flow doc).
+
+---
+
 ## Skipped / needs-you
 
 - **#13 (stale admin password in `docs/creds.md`)** — `docs/` is gitignored

@@ -18,6 +18,7 @@ from ..ai_client import inr
 from ..common import iso, js_round
 from ..db import get_db
 from ..deps import require_roles
+from ..hardening import rate_limit
 
 router = APIRouter(prefix="/claims", tags=["claims"])
 track_router = APIRouter(prefix="/track", tags=["track"])
@@ -643,7 +644,11 @@ async def respond(
 
 
 @track_router.get("/{claim_number}")
-async def track(claim_number: str, db: AsyncSession = Depends(get_db)):
+async def track(
+    claim_number: str,
+    db: AsyncSession = Depends(get_db),
+    _rl: None = Depends(rate_limit("track", limit=30, window=60)),
+):
     """Public claim tracking — a patient can follow a claim by its number."""
     claim = (
         await db.execute(
